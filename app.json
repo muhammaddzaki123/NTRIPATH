@@ -21,7 +21,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logoawal.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#BFF8F8"
       }
     },
     "web": {
