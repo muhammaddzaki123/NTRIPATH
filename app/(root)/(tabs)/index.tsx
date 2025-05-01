@@ -1,82 +1,162 @@
-import React from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import icons from '@/constants/icons';
 import images from '@/constants/images';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
-const features = [
-  { id: 'recall', title: 'Recall Asupan 24 Jam', icon: 'https://i.ibb.co/2dQZ9qZ/recall.png' },
-  { id: 'kalkulator', title: 'Kalkulator Gizi', icon: 'https://i.ibb.co/3mZ9Q7v/kalkulator.png' },
-  { id: 'dietplan', title: 'Diet Plan', icon: 'https://i.ibb.co/3mZ9Q7v/dietplan.png' },
-  { id: 'artikel', title: 'Artikel Gizi', icon: 'https://i.ibb.co/3mZ9Q7v/artikel.png' },
-  { id: 'konsultasi', title: 'Konsultasi Gizi', icon: 'https://i.ibb.co/3mZ9Q7v/konsultasi.png' },
-];
-
-const IndexScreen: React.FC = () => {
-  const navigation = useNavigation();
+const Home = () => {
+  const router = useRouter();
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: 'white' }}>
+    <View className="flex-1 bg-[#B7E5E7] relative">
+      {/* Background Illustrations - Doctor and Patient */}
+      <Image
+        source={images.bg1}
+        className="absolute bottom-0 left-0 w-full h-64"
+        resizeMode="contain"
+      />
+
       {/* Header */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#14b8a6', padding: 16 }}>
-        <Image
+      <View className="flex-row justify-between items-center px-4 pt-4 ">
+        <Image 
           source={images.logoawal}
-          style={{ width: 128, height: 40, resizeMode: 'contain' }}
+          className="w-44 h-20"
+          resizeMode="contain"
         />
         <TouchableOpacity>
-          <Image
-            source={images.logoawal}
-            style={{ width: 40, height: 40, borderRadius: 20 }}
+          <Image 
+            source={icons.person}
+            className="w-10 h-10 rounded-full"
           />
         </TouchableOpacity>
       </View>
 
-      {/* Banner Section */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ padding: 16 }}>
-        <View style={{ width: 288, backgroundColor: 'white', borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5, elevation: 3, marginRight: 16 }}>
-          <Image
-            source={{ uri: 'https://i.ibb.co/7QpKsCX/gizi-seimbang.png' }}
-            style={{ width: '100%', height: 160, borderTopLeftRadius: 12, borderTopRightRadius: 12 }}
-            resizeMode="cover"
-          />
-          <View style={{ padding: 8 }}>
-            <Text style={{ fontSize: 14, fontWeight: '600' }}>Gizi Seimbang</Text>
-            <Text style={{ fontSize: 12, color: '#6b7280' }}>Tekan untuk Info Lebih Lanjut</Text>
+      {/* Carousel Section */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        className="px-4 mt-2 bg-[#0BBEBB]"
+      >
+        <TouchableOpacity className="mr-3">
+          <View className="bg-white rounded-2xl overflow-hidden w-72 shadow-lg">
+            <View className="bg-white p-3 rounded-t-2xl">
+              <Image 
+                source={images.logoawal}
+                className="w-full h-36 rounded-xl"
+                resizeMode="cover"
+              />
+            </View>
+            <View className="p-3">
+              <Text className="text-base font-bold mb-1">Gizi Seimbang</Text>
+              <Text className="text-sm text-gray-600">Tekan untuk info lebih lanjut</Text>
+            </View>
           </View>
-        </View>
-        <View style={{ width: 288, backgroundColor: 'white', borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5, elevation: 3, padding: 16 }}>
-          <Text style={{ fontSize: 14, fontWeight: '600' }}>Apa itu gizi seimbang?</Text>
-          <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>
-            Gizi adalah zat yang dibutuhkan tubuh untuk tumbuh dan berkembang. Gizi seimbang adalah asupan gizi yang sesuai dengan kebutuhan tubuh.
-          </Text>
-        </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity className="mr-3">
+          <View className="bg-white rounded-2xl overflow-hidden w-72 shadow-lg">
+            <View className="bg-white p-3 rounded-t-2xl">
+              <Image 
+                source={images.logoawal}
+                className="w-full h-36 rounded-xl"
+                resizeMode="cover"
+              />
+            </View>
+            <View className="p-3">
+              <Text className="text-base font-bold mb-1">Apa itu gizi?</Text>
+              <Text className="text-sm text-gray-600">Tekan untuk info lebih lanjut</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
       </ScrollView>
 
-      {/* Lihat Lebih Lanjut Button */}
-      <TouchableOpacity style={{ borderTopWidth: 1, borderTopColor: '#d1d5db', padding: 16 }} onPress={() => navigation.navigate('')}>
-        <Text style={{ textAlign: 'right', color: '#14b8a6', fontWeight: '600' }}>Lihat lebih lanjut</Text>
+      {/* Lihat lebih lanjut button */}
+      <TouchableOpacity className="bg-white mx-4 my-3 p-3 rounded-xl flex-row justify-between items-center">
+        <Text className="text-sm font-semibold">Lihat lebih lanjut</Text>
+        <Image 
+          source={icons.rightArrow}
+          className="w-5 h-5"
+        />
       </TouchableOpacity>
 
-      {/* Features Section */}
-      <View style={{ backgroundColor: 'white', margin: 16, padding: 16, borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5, elevation: 3 }}>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-          {features.map((feature) => (
-            <TouchableOpacity key={feature.id} style={{ width: '30%', alignItems: 'center', marginBottom: 24 }}>
-              <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#d1fae5', justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
-                <Image source={{ uri: feature.icon }} style={{ width: 40, height: 40 }} />
-              </View>
-              <Text style={{ textAlign: 'center', fontSize: 12 }}>{feature.title}</Text>
-            </TouchableOpacity>
-          ))}
+      {/* Features Grid - In a white box container */}
+      <View className="mx-4 mb-16 bg-white rounded-xl p-4">
+        {/* Top Row - 2 icons */}
+        <View className="flex-row justify-between mb-4">
+        <TouchableOpacity 
+            className="items-center"
+            onPress={() => router.push('/Chat')}
+          >
+            <View className="bg-[#5CD3D3] rounded-full w-16 h-16 items-center justify-center">
+              <Image 
+                source={icons.bell}
+                className="w-8 h-8"
+              />
+            </View>
+            <Text className="text-center mt-1 text-xs">Konsultasi Gizi</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            className="items-center"
+            onPress={() => router.push('/Chat')}
+          >
+            <View className="bg-[#5CD3D3] rounded-full w-16 h-16 items-center justify-center">
+              <Image 
+                source={icons.bell}
+                className="w-8 h-8"
+              />
+            </View>
+            <Text className="text-center mt-1 text-xs">Konsultasi Gizi</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Middle - 1 icon */}
+        <View className="items-center mb-4">
+        <TouchableOpacity 
+            className="items-center"
+            onPress={() => router.push('/Chat')}
+          >
+            <View className="bg-[#5CD3D3] rounded-full w-16 h-16 items-center justify-center">
+              <Image 
+                source={icons.bell}
+                className="w-8 h-8"
+              />
+            </View>
+            <Text className="text-center mt-1 text-xs">Konsultasi Gizi</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Bottom Row - 2 icons */}
+        <View className="flex-row justify-between">
+        <TouchableOpacity 
+            className="items-center"
+            onPress={() => router.push('/Chat')}
+          >
+            <View className="bg-[#5CD3D3] rounded-full w-16 h-16 items-center justify-center">
+              <Image 
+                source={icons.bell}
+                className="w-8 h-8"
+              />
+            </View>
+            <Text className="text-center mt-1 text-xs">Konsultasi Gizi</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            className="items-center"
+            onPress={() => router.push('/Chat')}
+          >
+            <View className="bg-[#5CD3D3] rounded-full w-16 h-16 items-center justify-center">
+              <Image 
+                source={icons.bell}
+                className="w-8 h-8"
+              />
+            </View>
+            <Text className="text-center mt-1 text-xs">Konsultasi Gizi</Text>
+          </TouchableOpacity>
         </View>
       </View>
-
-      {/* Bottom Illustration */}
-      <Image
-        source={{ uri: 'https://i.ibb.co/3mZ9Q7v/bottom-illustration.png' }}
-        style={{ width: '100%', height: 160, resizeMode: 'contain' }}
-      />
-    </ScrollView>
+    </View>
   );
 };
 
-export default IndexScreen;
+export default Home;

@@ -1,10 +1,12 @@
 import React from 'react'
 import { Text, View } from 'react-native'
 
-export default function signIn() {
+const Notification = () => {
   return (
     <View>
-      <Text>signIn</Text>
+      <Text>Notification</Text>
     </View>
   )
 }
+
+export default Notification

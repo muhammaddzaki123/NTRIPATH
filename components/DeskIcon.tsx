@@ -1,12 +1,10 @@
 import { View, Text } from 'react-native'
 import React from 'react'
 
-const Explore = () => {
+export default function DeskIcon() {
   return (
     <View>
-      <Text>Explore</Text>
+      <Text>DeskIcon</Text>
     </View>
   )
 }
-
-export default Explore

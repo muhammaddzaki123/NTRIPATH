@@ -1,10 +1,12 @@
 import React from 'react'
 import { Text, View } from 'react-native'
 
-export default function signIn() {
+const KalGizi = () => {
   return (
     <View>
-      <Text>signIn</Text>
+      <Text>KalGizi</Text>
     </View>
   )
 }
+
+export default KalGizi

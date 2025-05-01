@@ -1,19 +1,19 @@
-import React, { useState, useRef } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useRef, useState } from 'react';
 import {
+  FlatList,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
   SafeAreaView,
-  View,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Image,
-  Modal,
-  Pressable,
-  StyleSheet,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 interface Message {
   id: string;

@@ -1,67 +1,67 @@
 import images from "./images";
 import icons from "./icons";
-export const cards = [
-  {
-    title: "Card 1",
-    location: "Location 1",
-    price: "$100",
-    rating: 4.8,
-    category: "obat",
-    image: images.p1,
-  },
-  {
-    title: "Card 2",
-    location: "Location 2",
-    price: "$200",
-    rating: 3,
-    category: "obat",
-    image: images.p1,
-  },
-  {
-    title: "Card 3",
-    location: "Location 3",
-    price: "$300",
-    rating: 2,
-    category: "skin care",
-    image: images.p1,
-  },
-  {
-    title: "Card 4",
-    location: "Location 4",
-    price: "$400",
-    rating: 5,
-    category: "sabun",
-    image: images.p1,
-  },
-];
+// export const cards = [
+//   {
+//     title: "Card 1",
+//     location: "Location 1",
+//     price: "$100",
+//     rating: 4.8,
+//     category: "obat",
+//     image: images.p1,
+//   },
+//   {
+//     title: "Card 2",
+//     location: "Location 2",
+//     price: "$200",
+//     rating: 3,
+//     category: "obat",
+//     image: images.p1,
+//   },
+//   {
+//     title: "Card 3",
+//     location: "Location 3",
+//     price: "$300",
+//     rating: 2,
+//     category: "skin care",
+//     image: images.p1,
+//   },
+//   {
+//     title: "Card 4",
+//     location: "Location 4",
+//     price: "$400",
+//     rating: 5,
+//     category: "sabun",
+//     image: images.p1,
+//   },
+// ];
 
-export const featuredCards = [
-  {
-    title: "Featured 1",
-    location: "Location 1",
-    price: "$100",
-    rating: 4.8,
-    image: images.p1,
-    category: "obat anak",
-  },
-  {
-    title: "Featured 2",
-    location: "Location 2",
-    price: "$200",
-    rating: 3,
-    image: images.p1,
-    category: "obat",
-  },
-];
+// export const featuredCards = [
+//   {
+//     title: "Featured 1",
+//     location: "Location 1",
+//     price: "$100",
+//     rating: 4.8,
+//     image: images.p1,
+//     category: "obat anak",
+//   },
+//   {
+//     title: "Featured 2",
+//     location: "Location 2",
+//     price: "$200",
+//     rating: 3,
+//     image: images.p1,
+//     category: "obat",
+//   },
+// ];
 
-export const categories = [
-  { title: "All", category: "All" },
-  { title: "Propolist", category: "obat" },
-  { title: "skin care", category: "skin care" },
-  { title: "facial wash", category: "sabun" },
-  { title: "propolist anak", category: "obat anak" },
-  { title: "Others", category: "Others" },
-];
+// export const categories = [
+//   { title: "All", category: "All" },
+//   { title: "Propolist", category: "obat" },
+//   { title: "skin care", category: "skin care" },
+//   { title: "facial wash", category: "sabun" },
+//   { title: "propolist anak", category: "obat anak" },
+//   { title: "Others", category: "Others" },
+// ];
 
 // export const settings = [
 //   {
