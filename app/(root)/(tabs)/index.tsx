@@ -32,13 +32,14 @@ const Home = () => {
       </View>
 
       {/* Carousel Section */}
-      <View className="h-[260px] bg-[#0BBEBB] rounded-lg mt-2">
-        <ScrollView 
-        horizontal 
+      <View className="h-[200px] bg-[#0BBEBB] rounded-lg mt-2 -mb-[180px]" ></View>
+      <View className="h-[219px]  rounded-lg mt-2">
+        <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
-        className="px-4 mt-2 bg-[#0BBEBB] rounded-lg h-[20px]"
+        className="px-4 rounded-lg h-[20px]"
       >
-        <TouchableOpacity className="mr-3 mt-5">
+        <TouchableOpacity className="mr-3 ">
           <View className="bg-white rounded-2xl overflow-hidden w-72 shadow-lg">
             <View className="bg-white p-3 rounded-t-2xl">
               <Image 
@@ -54,7 +55,7 @@ const Home = () => {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity className="mr-3 mt-5">
+        <TouchableOpacity className="mr-3 ">
           <View className="bg-white rounded-2xl overflow-hidden w-72 shadow-lg">
             <View className="bg-white p-3 rounded-t-2xl">
               <Image 
@@ -73,7 +74,9 @@ const Home = () => {
       </View>
 
       {/* Lihat lebih lanjut button */}
-      <TouchableOpacity className="bg-white mx-4 my-3 p-3 rounded-xl flex-row justify-between items-center">
+      <TouchableOpacity
+      onPress={() => router.push('./DeskIcon')}
+      className="bg-white mx-4 my-3 p-3 rounded-xl flex-row justify-between items-center">
         <Text className="text-sm font-semibold">Lihat lebih lanjut</Text>
         <Image 
           source={icons.rightArrow}
@@ -89,26 +92,26 @@ const Home = () => {
             className="items-center"
             onPress={() => router.push('/Chat')}
           >
-            <View className="bg-[#5CD3D3] rounded-full w-16 h-16 items-center justify-center">
+            <View className="bg-[#dbe7e7] rounded-full w-16 h-16 items-center justify-center">
               <Image 
-                source={icons.bell}
-                className="w-8 h-8"
+                source={images.asupan}
+                className="size-12"
               />
             </View>
-            <Text className="text-center mt-1 text-xs">Konsultasi Gizi</Text>
+            <Text className="text-center mt-1 text-xs">Recall Asupan 24 Jam</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
             className="items-center"
             onPress={() => router.push('/Chat')}
           >
-            <View className="bg-[#5CD3D3] rounded-full w-16 h-16 items-center justify-center">
+            <View className="bg-[#dbe7e7] rounded-full w-16 h-16 items-center justify-center">
               <Image 
-                source={icons.bell}
-                className="w-8 h-8"
+                source={images.kalkulator}
+                className="size-12"
               />
             </View>
-            <Text className="text-center mt-1 text-xs">Konsultasi Gizi</Text>
+            <Text className="text-center mt-1 text-xs">Kalkulator Gizi</Text>
           </TouchableOpacity>
         </View>
 
@@ -118,13 +121,13 @@ const Home = () => {
             className="items-center"
             onPress={() => router.push('/Chat')}
           >
-            <View className="bg-[#5CD3D3] rounded-full w-16 h-16 items-center justify-center">
+            <View className="bg-[#dbe7e7] rounded-full w-16 h-16 items-center justify-center">
               <Image 
-                source={icons.bell}
-                className="w-8 h-8"
+                source={images.artikel}
+                className="size-12"
               />
             </View>
-            <Text className="text-center mt-1 text-xs">Konsultasi Gizi</Text>
+            <Text className="text-center mt-1 text-xs">Artiket Gizi</Text>
           </TouchableOpacity>
         </View>
 
@@ -134,23 +137,23 @@ const Home = () => {
             className="items-center"
             onPress={() => router.push('/Chat')}
           >
-            <View className="bg-[#5CD3D3] rounded-full w-16 h-16 items-center justify-center">
+            <View className="bg-[#dbe7e7] rounded-full w-16 h-16 items-center justify-center">
               <Image 
-                source={icons.bell}
-                className="w-8 h-8"
+                source={images.diet}
+                className="size-12"
               />
             </View>
-            <Text className="text-center mt-1 text-xs">Konsultasi Gizi</Text>
+            <Text className="text-center mt-1 text-xs">Diet Plan</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
             className="items-center"
             onPress={() => router.push('/Chat')}
           >
-            <View className="bg-[#5CD3D3] rounded-full w-16 h-16 items-center justify-center">
+            <View className="bg-[#dbe7e7] rounded-full w-16 h-16 items-center justify-center">
               <Image 
-                source={icons.bell}
-                className="w-8 h-8"
+                source={images.konsultasi}
+                className="size-12"
               />
             </View>
             <Text className="text-center mt-1 text-xs">Konsultasi Gizi</Text>
