@@ -32,12 +32,13 @@ const Home = () => {
       </View>
 
       {/* Carousel Section */}
-      <ScrollView 
+      <View className="h-[260px] bg-[#0BBEBB] rounded-lg mt-2">
+        <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
         className="px-4 mt-2 bg-[#0BBEBB] rounded-lg h-[20px]"
       >
-        <TouchableOpacity className="mr-3 mt-10">
+        <TouchableOpacity className="mr-3 mt-5">
           <View className="bg-white rounded-2xl overflow-hidden w-72 shadow-lg">
             <View className="bg-white p-3 rounded-t-2xl">
               <Image 
@@ -53,7 +54,7 @@ const Home = () => {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity className="mr-3 mt-10">
+        <TouchableOpacity className="mr-3 mt-5">
           <View className="bg-white rounded-2xl overflow-hidden w-72 shadow-lg">
             <View className="bg-white p-3 rounded-t-2xl">
               <Image 
@@ -69,6 +70,7 @@ const Home = () => {
           </View>
         </TouchableOpacity>
       </ScrollView>
+      </View>
 
       {/* Lihat lebih lanjut button */}
       <TouchableOpacity className="bg-white mx-4 my-3 p-3 rounded-xl flex-row justify-between items-center">
