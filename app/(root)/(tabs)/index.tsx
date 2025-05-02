@@ -25,7 +25,7 @@ const Home = () => {
         />
         <TouchableOpacity>
           <Image 
-            source={icons.person}
+            source={icons.profile}
             className="w-10 h-10 rounded-full"
           />
         </TouchableOpacity>
@@ -103,7 +103,7 @@ const Home = () => {
 
           <TouchableOpacity 
             className="items-center"
-            onPress={() => router.push('/Chat')}
+            onPress={() => router.push('./KalkulatorGizi')}
           >
             <View className="bg-[#dbe7e7] rounded-full w-16 h-16 items-center justify-center">
               <Image 
