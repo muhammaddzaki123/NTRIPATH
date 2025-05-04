@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, ScrollView } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
 import { DIET_PLANS } from '@/constants/diet-config';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import React from 'react';
+import { ScrollView, Text, View } from 'react-native';
 
 const DietRecommendations = () => {
   const params = useLocalSearchParams();
