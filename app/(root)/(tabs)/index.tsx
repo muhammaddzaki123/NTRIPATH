@@ -135,7 +135,7 @@ const Home = () => {
         <View className="flex-row justify-between">
         <TouchableOpacity 
             className="items-center"
-            onPress={() => router.push('/Chat')}
+            onPress={() => router.push('/dietPlan')}
           >
             <View className="bg-[#dbe7e7] rounded-full w-16 h-16 items-center justify-center">
               <Image 
@@ -148,7 +148,7 @@ const Home = () => {
 
           <TouchableOpacity 
             className="items-center"
-            onPress={() => router.push('/Chat')}
+            onPress={() => router.push('/konsultasi')}
           >
             <View className="bg-[#dbe7e7] rounded-full w-16 h-16 items-center justify-center">
               <Image 
