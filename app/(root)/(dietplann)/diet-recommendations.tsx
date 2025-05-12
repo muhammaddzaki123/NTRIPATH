@@ -1,13 +1,21 @@
 import { DIET_PLANS } from '@/constants/diet-config';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 const DietRecommendations = () => {
   const params = useLocalSearchParams();
+  const router = useRouter();
   const { disease, calories } = params;
+  
+  // Round to nearest 100 calories
   const roundedCalories = Math.round(Number(calories) / 100) * 100;
-  const closestCalories = 1700; // For now we only have 1700 calorie plans
+  
+  // Find closest available calorie plan
+  const availableCalories = Object.keys(DIET_PLANS[disease as keyof typeof DIET_PLANS] || {}).map(Number);
+  const closestCalories = availableCalories.reduce((prev, curr) => {
+    return Math.abs(curr - roundedCalories) < Math.abs(prev - roundedCalories) ? curr : prev;
+  }, availableCalories[0] || 1700);
 
   const renderMealSection = (title: string, meals: Array<{
     bahan: string;
@@ -16,14 +24,14 @@ const DietRecommendations = () => {
     penukar: string;
   }>) => (
     <View className="mt-4">
-      <Text className="font-bold text-lg mb-2">{title}</Text>
+      <Text className="text-gray-800 font-semibold text-base mb-2">{title}</Text>
       <View className="space-y-2">
         {meals.map((meal, index) => (
-          <View key={index} className="flex-row justify-between">
-            <Text className="w-24">{meal.bahan}</Text>
-            <Text className="w-16">{meal.berat}</Text>
-            <Text className="w-16">{meal.urt}</Text>
-            <Text className="w-20">{meal.penukar}</Text>
+          <View key={`${title}-${index}`} className="flex-row justify-between items-center py-1">
+            <Text className="flex-1 text-gray-700">{meal.bahan}</Text>
+            <Text className="w-20 text-center text-gray-700">{meal.berat}</Text>
+            <Text className="w-24 text-center text-gray-700">{meal.urt}</Text>
+            <Text className="w-24 text-center text-gray-700">{meal.penukar}</Text>
           </View>
         ))}
       </View>
@@ -35,22 +43,26 @@ const DietRecommendations = () => {
     
     if (!plan) {
       return (
-        <View className="bg-white rounded-lg p-4">
-          <Text className="text-lg">Diet plan tidak tersedia untuk kondisi ini.</Text>
+        <View className="bg-white rounded-2xl p-6 shadow-lg">
+          <Text className="text-lg text-center text-gray-800">
+            Diet plan tidak tersedia untuk kondisi ini.
+          </Text>
         </View>
       );
     }
 
     return (
-      <View className="bg-white rounded-lg p-4 mb-4">
-        <Text className="text-xl font-bold mb-4">{plan.title}</Text>
+      <View className="bg-white rounded-2xl p-6 shadow-lg mb-6">
+        <Text className="text-xl font-bold text-center text-gray-800 mb-6">
+          {plan.title}
+        </Text>
         
-        <View className="border-b border-gray-200 pb-2">
-          <View className="flex-row justify-between mb-2">
-            <Text className="font-bold w-24">Bahan</Text>
-            <Text className="font-bold w-16">Berat</Text>
-            <Text className="font-bold w-16">URT</Text>
-            <Text className="font-bold w-20">Penukar</Text>
+        <View className="border-b border-gray-200 pb-2 mb-4">
+          <View className="flex-row justify-between">
+            <Text className="flex-1 font-bold text-gray-800">Bahan</Text>
+            <Text className="w-20 text-center font-bold text-gray-800">Berat</Text>
+            <Text className="w-24 text-center font-bold text-gray-800">URT</Text>
+            <Text className="w-24 text-center font-bold text-gray-800">Penukar</Text>
           </View>
         </View>
 
@@ -71,10 +83,33 @@ const DietRecommendations = () => {
           headerStyle: { backgroundColor: '#40E0D0' },
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: 'bold' },
+          headerShadowVisible: false,
         }}
       />
       <View className="p-4">
         {renderDietPlan()}
+        
+        <View className="flex-row justify-between space-x-4 mt-2 mb-6">
+          <TouchableOpacity 
+            className="flex-1 bg-white rounded-full py-4 items-center shadow-sm"
+            onPress={() => router.back()}
+          >
+            <Text className="text-gray-800 font-semibold">HITUNG ULANG</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            className="flex-1 bg-white rounded-full py-4 items-center shadow-sm"
+            onPress={() => {
+              // Navigate to diet recommendations
+              router.push({
+                pathname: "/diet-recommendations",
+                params: { disease, calories: roundedCalories }
+              });
+            }}
+          >
+            <Text className="text-gray-800 font-semibold">TEMUKAN DIET PLAN</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </ScrollView>
   );
