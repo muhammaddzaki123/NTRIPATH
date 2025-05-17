@@ -90,7 +90,7 @@ const Home = () => {
         <View className="flex-row justify-between mb-4">
         <TouchableOpacity 
             className="items-center"
-            onPress={() => router.push('/Chat')}
+            onPress={() => router.push('/recall')}
           >
             <View className="bg-[#dbe7e7] rounded-full w-16 h-16 items-center justify-center">
               <Image 

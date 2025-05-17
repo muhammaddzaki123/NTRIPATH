@@ -25,11 +25,22 @@ export default function RootLayout() {
 
   return (
     <ChatProvider>
-      <Stack screenOptions={{headerShown: false}}>
+      <Stack 
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: '#40E0D0',
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
+        }}
+      >
         <Stack.Screen
           name="(root)"
           options={{
-            headerShown: false,
+            headerShown: true,
+            title: 'Recall Asupan Makanan 24 Jam'
           }}
         />
       </Stack>
