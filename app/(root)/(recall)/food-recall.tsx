@@ -1,9 +1,10 @@
-import { View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Image } from 'expo-image';
-import React, { useState } from 'react';
-import { Picker } from '@react-native-picker/picker';
 import { foodRestrictions } from '@/constants/food-restrictions';
+import { Picker } from '@react-native-picker/picker';
+import { Image } from 'expo-image';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as React from 'react';
+import { useState } from 'react';
+import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 type FoodInput = {
   name: string;
@@ -12,6 +13,16 @@ type FoodInput = {
 };
 
 type MealType = 'breakfast' | 'lunch' | 'dinner';
+
+type MealData = {
+  carbs: FoodInput;
+  others: FoodInput[];
+  snacks: FoodInput[];
+};
+
+type MealsState = {
+  [key in MealType]: MealData;
+};
 
 const FoodInputRow = ({ 
   value,
@@ -22,30 +33,37 @@ const FoodInputRow = ({
   onChange: (data: FoodInput) => void;
   placeholder?: string;
 }) => (
-  <View className="flex-row mb-3 space-x-2">
-    <TextInput
-      className="flex-2 bg-white rounded-xl p-3"
-      value={value.name}
-      onChangeText={(text) => onChange({ ...value, name: text })}
-      placeholder={placeholder}
-    />
-    <TextInput
-      className="w-20 bg-white rounded-xl p-3"
-      value={value.amount}
-      onChangeText={(text) => onChange({ ...value, amount: text })}
-      placeholder="Jumlah"
-      keyboardType="numeric"
-    />
-    <View className="w-20 bg-white rounded-xl overflow-hidden">
+  <View className="mb-4">
+    <View className="flex-row space-x-3 mb-2">
+      <TextInput
+        className="flex-1 bg-white rounded-xl p-4 text-base"
+        value={value.name}
+        onChangeText={(text: string) => onChange({ ...value, name: text })}
+        placeholder={placeholder}
+      />
+      <TextInput
+        className="w-24 bg-white rounded-xl p-4 text-base"
+        value={value.amount}
+        onChangeText={(text: string) => onChange({ ...value, amount: text })}
+        placeholder="Jumlah"
+        keyboardType="numeric"
+      />
+    </View>
+    <View className="bg-white rounded-xl overflow-hidden w-40">
       <Picker
         selectedValue={value.unit}
-        onValueChange={(text) => onChange({ ...value, unit: text })}
-        className="h-12"
+        onValueChange={(text: string) => onChange({ ...value, unit: text })}
+        style={{ height: 50, backgroundColor: 'white' }}
       >
-        <Picker.Item label="URT" value="" />
-        {['Porsi', 'Piring', 'Sendok', 'Buah', 'Potong'].map((unit) => (
-          <Picker.Item key={unit} label={unit} value={unit} />
-        ))}
+        <Picker.Item label="Pilih URT" value="" />
+        {['Porsi', 'Piring', 'Sendok', 'Buah', 'Potong'].map(unit => 
+          <Picker.Item 
+            key={unit} 
+            label={unit} 
+            value={unit}
+            style={{ fontSize: 16 }}
+          />
+        )}
       </Picker>
     </View>
   </View>
@@ -56,7 +74,7 @@ export default function FoodRecallScreen() {
   const params = useLocalSearchParams();
   const disease = params.disease as string;
   const [mealType, setMealType] = useState<MealType>('breakfast');
-  const [meals, setMeals] = useState({
+  const [meals, setMeals] = useState<MealsState>({
     breakfast: {
       carbs: { name: '', amount: '', unit: '' },
       others: Array(4).fill({ name: '', amount: '', unit: '' }),
@@ -76,7 +94,7 @@ export default function FoodRecallScreen() {
 
   const updateFood = (
     type: MealType,
-    category: 'carbs' | 'others' | 'snacks',
+    category: keyof MealData,
     index: number,
     data: FoodInput
   ) => {
@@ -99,10 +117,9 @@ export default function FoodRecallScreen() {
     } else if (mealType === 'lunch') {
       setMealType('dinner');
     } else {
-      // Collect all foods from all meals
-      const allFoods: ({ name: string; amount: string; unit: string; } | { name: string; amount: string; unit: string; } | { name: string; amount: string; unit: string; })[] = [];
+      const allFoods: FoodInput[] = [];
       ['breakfast', 'lunch', 'dinner'].forEach((mealTime) => {
-        const meal = meals[mealTime as keyof typeof meals];
+        const meal = meals[mealTime as MealType];
         if (meal.carbs.name) {
           allFoods.push(meal.carbs);
         }
@@ -118,7 +135,6 @@ export default function FoodRecallScreen() {
         });
       });
 
-      // Check against restrictions
       const restrictions = foodRestrictions[disease] || [];
       const warningFoods = allFoods.filter(food => {
         const restriction = restrictions.find(r => 
@@ -173,42 +189,48 @@ export default function FoodRecallScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1 px-4 py-2">
-        <View className="space-y-4">
+      <ScrollView className="flex-1 px-6 py-6">
+        <View className="space-y-6">
           <Text className="text-white text-xl font-semibold">
             {mealType === 'breakfast' ? 'Makan Pagi' :
              mealType === 'lunch' ? 'Makan Siang' : 'Makan Malam'}
           </Text>
 
-          <View className="space-y-4">
-            <Text className="text-white text-lg">Nasi/karbohidrat :</Text>
-            <FoodInputRow
-              value={currentMeal.carbs}
-              onChange={(data) => updateFood(mealType, 'carbs', 0, data)}
-            />
-
-            <Text className="text-white text-lg mt-4">Lainnya :</Text>
-            {currentMeal.others.map((food: FoodInput, index: number) => (
+          <View className="space-y-6">
+            <View>
+              <Text className="text-white text-lg font-medium mb-3">Nasi/karbohidrat :</Text>
               <FoodInputRow
-                key={`other-${index}`}
-                value={food}
-                onChange={(data) => updateFood(mealType, 'others', index, data)}
+                value={currentMeal.carbs}
+                onChange={(data) => updateFood(mealType, 'carbs', 0, data)}
               />
-            ))}
+            </View>
 
-            <Text className="text-white text-lg mt-4">Selingan :</Text>
-            {currentMeal.snacks.map((food: FoodInput, index: number) => (
-              <FoodInputRow
-                key={`snack-${index}`}
-                value={food}
-                onChange={(data) => updateFood(mealType, 'snacks', index, data)}
-              />
-            ))}
+            <View>
+              <Text className="text-white text-lg font-medium mb-3">Lainnya :</Text>
+              {currentMeal.others.map((food: FoodInput, index: number) => (
+                <FoodInputRow
+                  key={`other-${index}`}
+                  value={food}
+                  onChange={(data) => updateFood(mealType, 'others', index, data)}
+                />
+              ))}
+            </View>
+
+            <View>
+              <Text className="text-white text-lg font-medium mb-3">Selingan :</Text>
+              {currentMeal.snacks.map((food: FoodInput, index: number) => (
+                <FoodInputRow
+                  key={`snack-${index}`}
+                  value={food}
+                  onChange={(data) => updateFood(mealType, 'snacks', index, data)}
+                />
+              ))}
+            </View>
           </View>
         </View>
 
         <TouchableOpacity 
-          className="bg-white rounded-full py-3 px-6 mt-6 mb-4 items-center"
+          className="bg-white rounded-full py-4 px-6 mt-8 mb-6 items-center shadow-lg"
           onPress={handleNext}
         >
           <Text className="text-[#40E0D0] font-semibold text-lg">

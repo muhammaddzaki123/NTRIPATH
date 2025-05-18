@@ -1,16 +1,14 @@
-import { Picker } from '@react-native-picker/picker';
+import { View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 
 const diseases = [
   'Pilih penyakit',
   'Diabetes',
   'Hipertensi',
-  'Kolesterol',
-  'Asam Urat',
-  'Maag'
+  'Kanker'
 ];
 
 export default function RecallScreen() {
