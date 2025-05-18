@@ -1,8 +1,9 @@
-import { urtOptions } from '@/constants/urt-options';
-import { Picker } from '@react-native-picker/picker';
-import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Image } from 'expo-image';
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+import { foodRestrictions } from '@/constants/food-restrictions';
 
 type FoodInput = {
   name: string;
@@ -21,28 +22,28 @@ const FoodInputRow = ({
   onChange: (data: FoodInput) => void;
   placeholder?: string;
 }) => (
-  <View style={styles.foodRow}>
+  <View className="flex-row mb-3 space-x-2">
     <TextInput
-      style={styles.foodNameInput}
+      className="flex-2 bg-white rounded-xl p-3"
       value={value.name}
       onChangeText={(text) => onChange({ ...value, name: text })}
       placeholder={placeholder}
     />
     <TextInput
-      style={styles.amountInput}
+      className="w-20 bg-white rounded-xl p-3"
       value={value.amount}
       onChangeText={(text) => onChange({ ...value, amount: text })}
       placeholder="Jumlah"
       keyboardType="numeric"
     />
-    <View style={styles.unitContainer}>
+    <View className="w-20 bg-white rounded-xl overflow-hidden">
       <Picker
         selectedValue={value.unit}
         onValueChange={(text) => onChange({ ...value, unit: text })}
-        style={styles.unitPicker}
+        className="h-12"
       >
         <Picker.Item label="URT" value="" />
-        {urtOptions.map((unit) => (
+        {['Porsi', 'Piring', 'Sendok', 'Buah', 'Potong'].map((unit) => (
           <Picker.Item key={unit} label={unit} value={unit} />
         ))}
       </Picker>
@@ -51,7 +52,9 @@ const FoodInputRow = ({
 );
 
 export default function FoodRecallScreen() {
-  const { disease } = useLocalSearchParams();
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  const disease = params.disease as string;
   const [mealType, setMealType] = useState<MealType>('breakfast');
   const [meals, setMeals] = useState({
     breakfast: {
@@ -96,11 +99,38 @@ export default function FoodRecallScreen() {
     } else if (mealType === 'lunch') {
       setMealType('dinner');
     } else {
+      // Collect all foods from all meals
+      const allFoods: ({ name: string; amount: string; unit: string; } | { name: string; amount: string; unit: string; } | { name: string; amount: string; unit: string; })[] = [];
+      ['breakfast', 'lunch', 'dinner'].forEach((mealTime) => {
+        const meal = meals[mealTime as keyof typeof meals];
+        if (meal.carbs.name) {
+          allFoods.push(meal.carbs);
+        }
+        meal.others.forEach(food => {
+          if (food.name) {
+            allFoods.push(food);
+          }
+        });
+        meal.snacks.forEach(food => {
+          if (food.name) {
+            allFoods.push(food);
+          }
+        });
+      });
+
+      // Check against restrictions
+      const restrictions = foodRestrictions[disease] || [];
+      const warningFoods = allFoods.filter(food => {
+        const restriction = restrictions.find(r => 
+          r.name.toLowerCase() === food.name.toLowerCase()
+        );
+        return restriction && parseInt(food.amount) > restriction.maxAmount;
+      });
+
       router.push({
         pathname: '/warning',
         params: { 
-          meals: JSON.stringify(meals),
-          disease: disease as string
+          warningFoods: JSON.stringify(warningFoods)
         }
       });
     }
@@ -119,145 +149,73 @@ export default function FoodRecallScreen() {
   const currentMeal = meals[mealType];
 
   return (
-    <ScrollView style={styles.container}>
-      <Stack.Screen 
-        options={{
-          title: 'Recall Asupan Makanan 24 Jam',
-          headerStyle: {
-            backgroundColor: '#40E0D0',
-          },
-          headerTintColor: '#fff',
-          headerLeft: () => (
-            <TouchableOpacity onPress={handleBack} style={styles.headerButton}>
-              <Text style={styles.headerButtonText}>Kembali</Text>
-            </TouchableOpacity>
-          ),
-          headerRight: () => (
-            <TouchableOpacity onPress={() => router.replace('/')} style={styles.headerButton}>
-              <Text style={styles.headerButtonText}>Keluar</Text>
-            </TouchableOpacity>
-          ),
-        }}
-      />
-
-      <View style={styles.content}>
-        <Text style={styles.sectionTitle}>
-          {mealType === 'breakfast' ? 'Makan Pagi' :
-           mealType === 'lunch' ? 'Makan Siang' : 'Makan Malam'}
-        </Text>
-
-        <View style={styles.foodList}>
-          <Text style={styles.subTitle}>Nasi/karbohidrat:</Text>
-          <FoodInputRow
-            value={currentMeal.carbs}
-            onChange={(data) => updateFood(mealType, 'carbs', 0, data)}
+    <View className="flex-1 bg-[#40E0D0]">
+      {/* Custom Header */}
+      <View className="flex-row items-center justify-between px-4 py-3 bg-[#40E0D0]">
+        <TouchableOpacity 
+          onPress={handleBack}
+          className="p-2"
+        >
+          <Image 
+            source={require('../../../assets/icons/back-arrow.png')}
+            className="w-6 h-6"
+            contentFit="contain"
           />
+        </TouchableOpacity>
+        <Text className="flex-1 text-white text-xl font-bold ml-2">
+          Recall Asupan Makanan 24 Jam
+        </Text>
+        <TouchableOpacity 
+          onPress={() => router.replace('/')}
+          className="p-2"
+        >
+          <Text className="text-white text-base">Keluar</Text>
+        </TouchableOpacity>
+      </View>
 
-          <Text style={styles.subTitle}>Lainnya:</Text>
-          {currentMeal.others.map((food: FoodInput, index: number) => (
-            <FoodInputRow
-              key={`other-${index}`}
-              value={food}
-              onChange={(data) => updateFood(mealType, 'others', index, data)}
-            />
-          ))}
+      <ScrollView className="flex-1 px-4 py-2">
+        <View className="space-y-4">
+          <Text className="text-white text-xl font-semibold">
+            {mealType === 'breakfast' ? 'Makan Pagi' :
+             mealType === 'lunch' ? 'Makan Siang' : 'Makan Malam'}
+          </Text>
 
-          <Text style={styles.subTitle}>Selingan:</Text>
-          {currentMeal.snacks.map((food: FoodInput, index: number) => (
+          <View className="space-y-4">
+            <Text className="text-white text-lg">Nasi/karbohidrat :</Text>
             <FoodInputRow
-              key={`snack-${index}`}
-              value={food}
-              onChange={(data) => updateFood(mealType, 'snacks', index, data)}
+              value={currentMeal.carbs}
+              onChange={(data) => updateFood(mealType, 'carbs', 0, data)}
             />
-          ))}
+
+            <Text className="text-white text-lg mt-4">Lainnya :</Text>
+            {currentMeal.others.map((food: FoodInput, index: number) => (
+              <FoodInputRow
+                key={`other-${index}`}
+                value={food}
+                onChange={(data) => updateFood(mealType, 'others', index, data)}
+              />
+            ))}
+
+            <Text className="text-white text-lg mt-4">Selingan :</Text>
+            {currentMeal.snacks.map((food: FoodInput, index: number) => (
+              <FoodInputRow
+                key={`snack-${index}`}
+                value={food}
+                onChange={(data) => updateFood(mealType, 'snacks', index, data)}
+              />
+            ))}
+          </View>
         </View>
 
         <TouchableOpacity 
-          style={styles.nextButton}
+          className="bg-white rounded-full py-3 px-6 mt-6 mb-4 items-center"
           onPress={handleNext}
         >
-          <Text style={styles.nextButtonText}>
+          <Text className="text-[#40E0D0] font-semibold text-lg">
             {mealType === 'dinner' ? 'CEK ASUPAN' : 'NEXT'}
           </Text>
         </TouchableOpacity>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#E0FFFF',
-  },
-  content: {
-    padding: 20,
-  },
-  headerButton: {
-    marginHorizontal: 10,
-  },
-  headerButtonText: {
-    color: '#fff',
-    fontSize: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
-  },
-  subTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    marginTop: 16,
-    color: '#333',
-  },
-  foodList: {
-    marginBottom: 24,
-  },
-  foodRow: {
-    flexDirection: 'row',
-    marginBottom: 12,
-    gap: 8,
-  },
-  foodNameInput: {
-    flex: 2,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: '#fff',
-  },
-  amountInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: '#fff',
-  },
-  unitContainer: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    overflow: 'hidden',
-  },
-  unitPicker: {
-    height: 45,
-    width: '100%',
-  },
-  nextButton: {
-    backgroundColor: '#40E0D0',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  nextButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});

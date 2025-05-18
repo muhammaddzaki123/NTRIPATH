@@ -1,201 +1,135 @@
-import { Stack, router } from 'expo-router';
+import { Picker } from '@react-native-picker/picker';
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-const diseases = ['Diabetes', 'Hipertensi', 'Kanker'];
+const diseases = [
+  'Pilih penyakit',
+  'Diabetes',
+  'Hipertensi',
+  'Kolesterol',
+  'Asam Urat',
+  'Maag'
+];
 
-export default function UserInfoScreen() {
+export default function RecallScreen() {
+  const router = useRouter();
   const [userData, setUserData] = useState({
     name: '',
     age: '',
     gender: '',
-    disease: '',
+    disease: 'Pilih penyakit',
   });
 
   const handleNext = () => {
-    if (!userData.name || !userData.age || !userData.gender || !userData.disease) {
+    if (!userData.name || !userData.age || !userData.gender || userData.disease === 'Pilih penyakit') {
       alert('Mohon lengkapi semua data');
       return;
     }
     router.push({
       pathname: '/food-recall',
-      params: { disease: userData.disease }
+      params: { disease: userData.disease.toLowerCase() }
     });
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Stack.Screen 
-        options={{
-          title: 'Recall Asupan Makanan 24 Jam',
-          headerStyle: {
-            backgroundColor: '#40E0D0',
-          },
-          headerTintColor: '#fff',
-          headerRight: () => (
-            <TouchableOpacity onPress={() => router.replace('/')} style={styles.headerButton}>
-              <Text style={styles.headerButtonText}>Keluar</Text>
-            </TouchableOpacity>
-          ),
-        }}
-      />
-      
-      <View style={styles.form}>
-        <Text style={styles.label}>Nama:</Text>
-        <TextInput
-          style={styles.input}
-          value={userData.name}
-          onChangeText={(text) => setUserData({...userData, name: text})}
-          placeholder="Masukkan nama"
-        />
-
-        <Text style={styles.label}>Usia:</Text>
-        <TextInput
-          style={styles.input}
-          value={userData.age}
-          onChangeText={(text) => setUserData({...userData, age: text})}
-          placeholder="Masukkan usia"
-          keyboardType="numeric"
-        />
-
-        <Text style={styles.label}>Jenis Kelamin:</Text>
-        <View style={styles.genderContainer}>
-          <TouchableOpacity 
-            style={[
-              styles.genderButton,
-              userData.gender === 'Laki-laki' && styles.selectedGender
-            ]}
-            onPress={() => setUserData({...userData, gender: 'Laki-laki'})}
-          >
-            <Text style={[
-              styles.genderText,
-              userData.gender === 'Laki-laki' && styles.selectedText
-            ]}>Laki-laki</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[
-              styles.genderButton,
-              userData.gender === 'Perempuan' && styles.selectedGender
-            ]}
-            onPress={() => setUserData({...userData, gender: 'Perempuan'})}
-          >
-            <Text style={[
-              styles.genderText,
-              userData.gender === 'Perempuan' && styles.selectedText
-            ]}>Perempuan</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.label}>Riwayat Penyakit:</Text>
-        <View style={styles.diseaseContainer}>
-          {diseases.map((disease) => (
-            <TouchableOpacity
-              key={disease}
-              style={[
-                styles.diseaseButton,
-                userData.disease === disease && styles.selectedDisease
-              ]}
-              onPress={() => setUserData({...userData, disease})}
-            >
-              <Text style={[
-                styles.diseaseText,
-                userData.disease === disease && styles.selectedText
-              ]}>{disease}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
+    <View className="flex-1 bg-[#40E0D0]">
+      {/* Custom Header */}
+      <View className="flex-row items-center justify-between px-4 py-3 bg-[#40E0D0]">
         <TouchableOpacity 
-          style={styles.nextButton}
-          onPress={handleNext}
+          onPress={() => router.back()}
+          className="p-2"
         >
-          <Text style={styles.nextButtonText}>NEXT</Text>
+          <Image 
+            source={require('../../../assets/icons/back-arrow.png')}
+            className="w-6 h-6"
+            contentFit="contain"
+          />
+        </TouchableOpacity>
+        <Text className="flex-1 text-white text-xl font-bold ml-2">
+          Recall Asupan Makanan 24 Jam
+        </Text>
+        <TouchableOpacity 
+          onPress={() => router.replace('/')}
+          className="p-2"
+        >
+          <Text className="text-white text-base">Keluar</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+
+      {/* Form Content */}
+      <ScrollView className="flex-1 px-6 py-6 bg-[#40E0D0]">
+        <View className="space-y-6">
+          {/* Nama */}
+          <View>
+            <Text className="text-white text-lg font-medium mb-2">Nama :</Text>
+            <TextInput
+              className="w-full bg-white rounded-xl p-4 text-base"
+              placeholder="Masukkan nama"
+              value={userData.name}
+              onChangeText={(text) => setUserData({...userData, name: text})}
+            />
+          </View>
+
+          {/* Row for Usia and Jenis Kelamin */}
+          <View className="flex-row space-x-4">
+            <View className="flex-1">
+              <Text className="text-white text-lg font-medium mb-2">Usia :</Text>
+              <TextInput
+                className="w-full bg-white rounded-xl p-4 text-base"
+                placeholder="Usia"
+                keyboardType="numeric"
+                value={userData.age}
+                onChangeText={(text) => setUserData({...userData, age: text})}
+              />
+            </View>
+            <View className="flex-1">
+              <Text className="text-white text-lg font-medium mb-2">Jenis Kelamin :</Text>
+              <View className="bg-white rounded-xl overflow-hidden">
+                <Picker
+                  selectedValue={userData.gender}
+                  onValueChange={(value) => setUserData({...userData, gender: value})}
+                  style={{ height: 50, backgroundColor: 'white' }}
+                >
+                  <Picker.Item label="Pilih" value="" />
+                  <Picker.Item label="Laki-laki" value="Laki-laki" />
+                  <Picker.Item label="Perempuan" value="Perempuan" />
+                </Picker>
+              </View>
+            </View>
+          </View>
+
+          {/* Riwayat Penyakit */}
+          <View>
+            <Text className="text-white text-lg font-medium mb-2">Riwayat Penyakit :</Text>
+            <View className="bg-white rounded-xl overflow-hidden">
+              <Picker
+                selectedValue={userData.disease}
+                onValueChange={(value) => setUserData({...userData, disease: value})}
+                style={{ height: 50, backgroundColor: 'white' }}
+              >
+                {diseases.map((disease) => (
+                  <Picker.Item 
+                    key={disease} 
+                    label={disease} 
+                    value={disease}
+                    style={{ fontSize: 16 }}
+                  />
+                ))}
+              </Picker>
+            </View>
+          </View>
+        </View>
+
+        {/* Next Button */}
+        <TouchableOpacity 
+          className="bg-white rounded-full py-4 px-6 mt-8 mb-4 items-center shadow-lg"
+          onPress={handleNext}
+        >
+          <Text className="text-[#40E0D0] font-semibold text-lg">NEXT</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#E0FFFF',
-  },
-  headerButton: {
-    marginHorizontal: 10,
-  },
-  headerButtonText: {
-    color: '#fff',
-    fontSize: 16,
-  },
-  form: {
-    padding: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    fontSize: 16,
-  },
-  genderContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    gap: 12,
-  },
-  genderButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    alignItems: 'center',
-  },
-  selectedGender: {
-    backgroundColor: '#40E0D0',
-    borderColor: '#40E0D0',
-  },
-  genderText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  selectedText: {
-    color: '#fff',
-  },
-  diseaseContainer: {
-    marginBottom: 24,
-  },
-  diseaseButton: {
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    marginBottom: 8,
-  },
-  selectedDisease: {
-    backgroundColor: '#40E0D0',
-    borderColor: '#40E0D0',
-  },
-  diseaseText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  nextButton: {
-    backgroundColor: '#40E0D0',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  nextButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
