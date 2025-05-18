@@ -1,4 +1,5 @@
 import { foodRestrictions } from '@/constants/food-restrictions';
+import { urtOptions } from '@/constants/urt-options';
 import { Picker } from '@react-native-picker/picker';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -33,38 +34,38 @@ const FoodInputRow = ({
   onChange: (data: FoodInput) => void;
   placeholder?: string;
 }) => (
-  <View className="mb-4">
-    <View className="flex-row space-x-3 mb-2">
+  <View className="mb-6">
+    <View className="flex-row items-center space-x-3">
       <TextInput
-        className="flex-1 bg-white rounded-xl p-4 text-base"
+        className="w-32 bg-white rounded-xl p-3 text-base"
         value={value.name}
         onChangeText={(text: string) => onChange({ ...value, name: text })}
         placeholder={placeholder}
       />
       <TextInput
-        className="w-24 bg-white rounded-xl p-4 text-base"
+        className="w-20 bg-white rounded-xl p-3 text-base"
         value={value.amount}
         onChangeText={(text: string) => onChange({ ...value, amount: text })}
         placeholder="Jumlah"
         keyboardType="numeric"
       />
-    </View>
-    <View className="bg-white rounded-xl overflow-hidden w-40">
-      <Picker
-        selectedValue={value.unit}
-        onValueChange={(text: string) => onChange({ ...value, unit: text })}
-        style={{ height: 50, backgroundColor: 'white' }}
-      >
-        <Picker.Item label="Pilih URT" value="" />
-        {['Porsi', 'Piring', 'Sendok', 'Buah', 'Potong'].map(unit => 
-          <Picker.Item 
-            key={unit} 
-            label={unit} 
-            value={unit}
-            style={{ fontSize: 16 }}
-          />
-        )}
-      </Picker>
+      <View className="flex-1 bg-white rounded-xl overflow-hidden">
+        <Picker
+          selectedValue={value.unit}
+          onValueChange={(text: string) => onChange({ ...value, unit: text })}
+          style={{ height: 48, backgroundColor: 'white' }}
+        >
+          <Picker.Item label="Pilih URT" value="" />
+          {urtOptions.map((unit: string) => 
+            <Picker.Item 
+              key={unit} 
+              label={unit} 
+              value={unit}
+              style={{ fontSize: 16 }}
+            />
+          )}
+        </Picker>
+      </View>
     </View>
   </View>
 );
@@ -190,15 +191,15 @@ export default function FoodRecallScreen() {
       </View>
 
       <ScrollView className="flex-1 px-6 py-6">
-        <View className="space-y-6">
-          <Text className="text-white text-xl font-semibold">
+        <View className="space-y-8">
+          <Text className="text-white text-2xl font-semibold">
             {mealType === 'breakfast' ? 'Makan Pagi' :
              mealType === 'lunch' ? 'Makan Siang' : 'Makan Malam'}
           </Text>
 
-          <View className="space-y-6">
+          <View className="space-y-8">
             <View>
-              <Text className="text-white text-lg font-medium mb-3">Nasi/karbohidrat :</Text>
+              <Text className="text-white text-lg font-medium mb-4">Nasi/karbohidrat :</Text>
               <FoodInputRow
                 value={currentMeal.carbs}
                 onChange={(data) => updateFood(mealType, 'carbs', 0, data)}
@@ -206,7 +207,7 @@ export default function FoodRecallScreen() {
             </View>
 
             <View>
-              <Text className="text-white text-lg font-medium mb-3">Lainnya :</Text>
+              <Text className="text-white text-lg font-medium mb-4">Lainnya :</Text>
               {currentMeal.others.map((food: FoodInput, index: number) => (
                 <FoodInputRow
                   key={`other-${index}`}
@@ -217,7 +218,7 @@ export default function FoodRecallScreen() {
             </View>
 
             <View>
-              <Text className="text-white text-lg font-medium mb-3">Selingan :</Text>
+              <Text className="text-white text-lg font-medium mb-4">Selingan :</Text>
               {currentMeal.snacks.map((food: FoodInput, index: number) => (
                 <FoodInputRow
                   key={`snack-${index}`}
