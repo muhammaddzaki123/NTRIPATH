@@ -1,8 +1,9 @@
+import GlobalProvider from "@/lib/global-provider";
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
 import { useEffect } from "react";
 import "../global.css";
-import { ChatProvider } from "../lib/chat-provider";
+// import { ChatProvider } from "../lib/chat-provider";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -22,28 +23,35 @@ export default function RootLayout() {
 
   if (!fontsLoaded) return null;
 
-
   return (
-    <ChatProvider>
-      <Stack 
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: '#40E0D0',
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-        }}
-      >
-        <Stack.Screen
-          name="(root)"
-          options={{
-            headerShown: true,
-            title: 'Recall Asupan Makanan 24 Jam'
-          }}
-        />
-      </Stack>
-    </ChatProvider>
+    <GlobalProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </GlobalProvider>
   );
 }
+
+
+//   return (
+//     <ChatProvider>
+//       <Stack 
+//         screenOptions={{
+//           headerStyle: {
+//             backgroundColor: '#40E0D0',
+//           },
+//           headerTintColor: '#fff',
+//           headerTitleStyle: {
+//             fontWeight: 'bold',
+//           },
+//         }}
+//       >
+//         <Stack.Screen
+//           name="(root)"
+//           options={{
+//             headerShown: true,
+//             title: 'Recall Asupan Makanan 24 Jam'
+//           }}
+//         />
+//       </Stack>
+//     </ChatProvider>
+//   );
+// }

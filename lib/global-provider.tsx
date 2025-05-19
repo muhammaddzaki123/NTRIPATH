@@ -1,13 +1,7 @@
-import React, { createContext, useContext, ReactNode } from "react";
+import React, { createContext, ReactNode, useContext } from "react";
+
 import { getCurrentUser } from "./appwrite";
 import { useAppwrite } from "./useAppwrite";
-
-interface User {
-  $id: string;
-  name: string;
-  email: string;
-  avatar: string;
-}
 
 interface GlobalContextType {
   isLogged: boolean;
@@ -16,16 +10,19 @@ interface GlobalContextType {
   refetch: () => void;
 }
 
+interface User {
+  $id: string;
+  name: string;
+  email: string;
+  avatar: string;
+}
+
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 
 interface GlobalProviderProps {
   children: ReactNode;
 }
 
-/**
- * Global provider component that manages authentication state
- * and provides it to the entire application
- */
 export const GlobalProvider = ({ children }: GlobalProviderProps) => {
   const {
     data: user,
@@ -51,15 +48,11 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
   );
 };
 
-/**
- * Custom hook to access the global authentication context
- * @throws {Error} If used outside of GlobalProvider
- */
 export const useGlobalContext = (): GlobalContextType => {
   const context = useContext(GlobalContext);
-  if (!context) {
+  if (!context)
     throw new Error("useGlobalContext must be used within a GlobalProvider");
-  }
+
   return context;
 };
 

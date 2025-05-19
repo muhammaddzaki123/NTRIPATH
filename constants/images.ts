@@ -1,4 +1,5 @@
 import artikel from "@/assets/images/artikel.png";
+import artikel1 from "@/assets/images/artikel1.png";
 import asupan from "@/assets/images/asupan.png";
 import bg1 from "@/assets/images/bg1.png";
 import diet from "@/assets/images/diet.png";
@@ -16,4 +17,5 @@ export default {
   konsultasi,
   kalkulator,
   diet,
+  artikel1,
 };

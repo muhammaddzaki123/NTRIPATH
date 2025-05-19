@@ -1,5 +1,4 @@
-import { foodRestrictions } from '@/constants/food-restrictions';
-import { urtOptions } from '@/constants/urt-options';
+import { foodRestrictions, urtOptions } from '@/constants/food-restrictions';
 import { Picker } from '@react-native-picker/picker';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';

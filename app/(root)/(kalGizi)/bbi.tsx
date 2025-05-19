@@ -1,7 +1,7 @@
 import icons from '@/constants/icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Image, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, SafeAreaView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const BBICalculator = () => {
   const router = useRouter();
@@ -18,6 +18,7 @@ const BBICalculator = () => {
   };
 
   return (
+  <SafeAreaView className='bg-primary-500 h-full p-4'>
     <View className="flex-1 bg-[#40E0D0]">
       {/* Header */}
       <View className="flex-row items-center p-4">
@@ -59,6 +60,7 @@ const BBICalculator = () => {
         </View>
       </View>
     </View>
+  </SafeAreaView>
   );
 };
 

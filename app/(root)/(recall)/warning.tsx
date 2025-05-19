@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React from 'react';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 type FoodWarning = {
   name: string;
@@ -72,7 +72,7 @@ export default function WarningScreen() {
 
         <TouchableOpacity 
           className="bg-white rounded-full py-3 px-6 mt-6 mb-4 items-center"
-          onPress={() => router.push('./consultation')}
+          onPress={() => router.push('./chat')}
         >
           <Text className="text-[#40E0D0] font-semibold text-lg">
             YUK KONSUL

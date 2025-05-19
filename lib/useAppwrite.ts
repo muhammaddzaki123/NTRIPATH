@@ -1,5 +1,5 @@
+import { useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
-import { useState, useEffect, useCallback } from "react";
 
 interface UseAppwriteOptions<T, P extends Record<string, string | number>> {
   fn: (params: P) => Promise<T>;
@@ -14,11 +14,6 @@ interface UseAppwriteReturn<T, P> {
   refetch: (newParams?: P) => Promise<void>;
 }
 
-/**
- * Custom hook for handling Appwrite API calls with loading and error states
- * @param options Configuration options for the hook
- * @returns Object containing data, loading state, error state, and refetch function
- */
 export const useAppwrite = <T, P extends Record<string, string | number>>({
   fn,
   params = {} as P,
@@ -52,18 +47,9 @@ export const useAppwrite = <T, P extends Record<string, string | number>>({
     if (!skip) {
       fetchData(params);
     }
-  }, [params, skip, fetchData]);
+  }, []);
 
-  const refetch = async (newParams?: P) => {
-    await fetchData(newParams || params);
-  };
+  const refetch = async (newParams?: P) => await fetchData(newParams || params);
 
-  return {
-    data,
-    loading,
-    error,
-    refetch,
-  };
+  return { data, loading, error, refetch };
 };
-
-export default useAppwrite;

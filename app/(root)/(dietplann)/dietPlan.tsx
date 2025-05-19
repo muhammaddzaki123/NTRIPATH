@@ -1,7 +1,8 @@
+import icons from '@/constants/icons';
 import { Picker } from '@react-native-picker/picker';
 import { Stack, router } from 'expo-router';
 import React, { useState } from 'react';
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const DietPlan = () => {
   const [gender, setGender] = useState('');
@@ -60,7 +61,22 @@ const DietPlan = () => {
   };
 
   return (
-    <ScrollView className="flex-1 bg-[#40E0D0]">
+        <SafeAreaView className='bg-primary-500 h-full p-4'>
+          {/* Header */}
+      <ScrollView className="flex-1 bg-[#40E0D0]">
+          <View className="flex-row items-center ">
+            <TouchableOpacity onPress={() => router.back()}>
+              <Image 
+                source={icons.rightArrow}
+                className="w-6 h-6 rotate-180"
+              />
+            </TouchableOpacity>
+            <Text className="text-white text-xl font-bold ml-4">ARTIKEL GIZI</Text>
+            <TouchableOpacity onPress={() => router.back()} className="ml-auto">
+              <Text className="text-3xl text-white mr-4">×</Text>
+            </TouchableOpacity>
+          </View>
+
       <Stack.Screen
         options={{
           headerTitle: "DIET PLAN",
@@ -68,7 +84,7 @@ const DietPlan = () => {
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: 'bold' },
         }}
-      />
+        />
       
       <View className="m-4 p-6 bg-[#5F9EA0] rounded-xl">
         <View className="flex-row justify-between mb-4">
@@ -79,7 +95,7 @@ const DietPlan = () => {
                 selectedValue={gender}
                 onValueChange={setGender}
                 className="h-12"
-              >
+                >
                 <Picker.Item label="Pilih" value="" />
                 <Picker.Item label="Laki-Laki" value="Laki-Laki" />
                 <Picker.Item label="Perempuan" value="Perempuan" />
@@ -95,7 +111,7 @@ const DietPlan = () => {
               keyboardType="numeric"
               className="bg-white p-3 rounded-lg"
               placeholder="Umur"
-            />
+              />
           </View>
         </View>
 
@@ -108,7 +124,7 @@ const DietPlan = () => {
               keyboardType="numeric"
               className="bg-white p-3 rounded-lg"
               placeholder="Berat"
-            />
+              />
           </View>
 
           <View className="flex-1 ml-2">
@@ -119,7 +135,7 @@ const DietPlan = () => {
               keyboardType="numeric"
               className="bg-white p-3 rounded-lg"
               placeholder="Tinggi"
-            />
+              />
           </View>
         </View>
 
@@ -130,7 +146,7 @@ const DietPlan = () => {
               selectedValue={activityLevel}
               onValueChange={setActivityLevel}
               className="h-12"
-            >
+              >
               <Picker.Item label="Pilih Level Aktivitas" value="" />
               {activityLevels.map((level, index) => (
                 <Picker.Item key={index} label={level.label} value={level.value} />
@@ -146,7 +162,7 @@ const DietPlan = () => {
               selectedValue={disease}
               onValueChange={setDisease}
               className="h-12"
-            >
+              >
               <Picker.Item label="Pilih Penyakit" value="" />
               {diseases.map((d, index) => (
                 <Picker.Item key={index} label={d} value={d} />
@@ -178,22 +194,22 @@ const DietPlan = () => {
               calculateBMR();
             }}
             className="bg-white py-3 px-6 rounded-full"
-          >
+            >
             <Text className="text-[#40E0D0] font-bold">HITUNG</Text>
           </TouchableOpacity>
 
           {showResults && (
             <TouchableOpacity
-              onPress={() => {
-                router.push({
-                  pathname: "/diet-recommendations",
-                  params: {
-                    disease: disease,
-                    calories: tee.mifflin.toString()
-                  }
-                });
-              }}
-              className="bg-white py-3 px-6 rounded-full"
+            onPress={() => {
+              router.push({
+                pathname: "/diet-recommendations",
+                params: {
+                  disease: disease,
+                  calories: tee.mifflin.toString()
+                }
+              });
+            }}
+            className="bg-white py-3 px-6 rounded-full"
             >
               <Text className="text-[#40E0D0] font-bold">TEMUKAN DIET PLAN</Text>
             </TouchableOpacity>
@@ -201,6 +217,7 @@ const DietPlan = () => {
         </View>
       </View>
     </ScrollView>
+  </SafeAreaView>
   );
 };
 

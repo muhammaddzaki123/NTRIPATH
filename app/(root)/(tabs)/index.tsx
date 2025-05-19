@@ -32,6 +32,9 @@ const Home = () => {
       </View>
 
       {/* Carousel Section */}
+       <ScrollView
+        showsVerticalScrollIndicator={false}
+      >
       <View className="h-[200px] bg-[#0BBEBB] rounded-lg mt-2 -mb-[180px]" ></View>
       <View className="h-[219px]  rounded-lg mt-2">
         <ScrollView
@@ -119,7 +122,7 @@ const Home = () => {
         <View className="items-center mb-4">
         <TouchableOpacity 
             className="items-center"
-            onPress={() => router.push('/Chat')}
+            onPress={() => router.push('./artikel')}
           >
             <View className="bg-[#dbe7e7] rounded-full w-16 h-16 items-center justify-center">
               <Image 
@@ -148,7 +151,7 @@ const Home = () => {
 
           <TouchableOpacity 
             className="items-center"
-            onPress={() => router.push('/konsultasi')}
+            onPress={() => router.push('/Chat')}
           >
             <View className="bg-[#dbe7e7] rounded-full w-16 h-16 items-center justify-center">
               <Image 
@@ -160,6 +163,7 @@ const Home = () => {
           </TouchableOpacity>
         </View>
       </View>
+      </ScrollView>
     </View>
   );
 };

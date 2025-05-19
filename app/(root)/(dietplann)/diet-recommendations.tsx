@@ -1,7 +1,8 @@
 import { DIET_PLANS } from '@/constants/diet-config';
+import icons from '@/constants/icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Image, SafeAreaView, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 const DietRecommendations = () => {
   const params = useLocalSearchParams();
@@ -76,7 +77,22 @@ const DietRecommendations = () => {
   };
 
   return (
-    <ScrollView className="flex-1 bg-[#40E0D0]">
+    <SafeAreaView className='bg-primary-500 h-full p-4'>
+        {/* Header */}
+        <ScrollView className="flex-1 bg-[#40E0D0]">
+              <View className="flex-row items-center ">
+                <TouchableOpacity onPress={() => router.back()}>
+                    <Image 
+                      source={icons.rightArrow}
+                      className="w-6 h-6 rotate-180"
+                    />
+                    </TouchableOpacity>
+                <Text className="text-white text-xl font-bold ml-4">ARTIKEL GIZI</Text>
+              <TouchableOpacity onPress={() => router.back()} className="ml-auto">
+            <Text className="text-3xl text-white mr-4">×</Text>
+        </TouchableOpacity>
+      </View>
+
       <Stack.Screen
         options={{
           headerTitle: "DIET PLAN",
@@ -112,6 +128,7 @@ const DietRecommendations = () => {
         </View>
       </View>
     </ScrollView>
+  </SafeAreaView>
   );
 };
 
