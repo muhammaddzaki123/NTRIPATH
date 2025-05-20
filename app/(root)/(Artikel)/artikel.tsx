@@ -9,8 +9,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const artikel = () => {
   return (
     <SafeAreaView className='bg-primary-500 h-full p-4'>
-      {/* Header */}
-      <View className="flex-row items-center ">
+      <FlatList
+      data={[1, 2, 3, 4, 5, 6]}
+      renderItem={({item})=>
+      <Artikel/>}
+      numColumns={2}
+      columnWrapperClassName="flex gap-5 px-5"
+      contentContainerClassName="pb-32"
+      showsHorizontalScrollIndicator={false}
+      className='bg-primary-400 pd-5 mt-5'
+      ListHeaderComponent={
+        <View>
+        <View className="flex-row items-center ">
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={"white"} />
         </TouchableOpacity>
@@ -19,22 +29,12 @@ const artikel = () => {
           <Text className="text-3xl text-white mr-4">×</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Content */}
-      <View className='felx flex-col mt-5 border-t pt-2 border-white'>
+        <View className='felx flex-col mt-5 border-t pt-2 border-white'>
       <Search/>
       </View>
-           
-        <FlatList
-        data={[1, 2, 3, 4, 5, 6]}
-        renderItem={({item})=>
-        <Artikel/>}
-        numColumns={2}
-        columnWrapperClassName="flex gap-5 px-5"
-        contentContainerClassName="pb-32"
-        showsHorizontalScrollIndicator={false}
-        className='bg-primary-400 pd-5 mt-5'
-      />
+      </View>
+  }
+/>
     </SafeAreaView>
   )
 }
