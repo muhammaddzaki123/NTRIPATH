@@ -1,131 +1,167 @@
-// import { Client, Databases, Account, ID, Query, RealtimeResponseEvent } from 'appwrite';
+import { ChatMessage, ChatPartner, NutritionistProfile, User } from '@/types/chat';
+import { Query } from 'appwrite';
+import { config, databases } from './appwrite';
 
-// const client = new Client()
-//   .setEndpoint('YOUR_APPWRITE_ENDPOINT') // Ganti dengan endpoint Appwrite Anda
-//   .setProject('YOUR_PROJECT_ID'); // Ganti dengan Project ID Appwrite Anda
+class ChatService {
+  async getNutritionistsByCategory(diseaseCategory: string): Promise<NutritionistProfile[]> {
+    try {
+      const response = await databases.listDocuments(
+        config.databaseId!,
+        'ahligizi',
+        [
+          Query.equal('specialization', diseaseCategory),
+          Query.equal('available', true)
+        ]
+      );
 
-// const databases = new Databases(client);
-// const account = new Account(client);
+      // Get user details for each nutritionist
+      const nutritionistsWithDetails = await Promise.all(
+        response.documents.map(async (nutritionist) => {
+          const user = await databases.getDocument(
+            config.databaseId!,
+            'users',
+            nutritionist.user_id
+          );
+          return { ...nutritionist, user };
+        })
+      );
 
-// const DATABASE_ID = 'YOUR_DATABASE_ID'; // ID database yang akan dibuat di Appwrite
-// const MESSAGES_COLLECTION_ID = 'messages'; // Collection untuk menyimpan pesan
-// const USERS_COLLECTION_ID = 'users'; // Collection untuk menyimpan data pengguna
+      return nutritionistsWithDetails;
+    } catch (error) {
+      console.error('Error getting nutritionists:', error);
+      return [];
+    }
+  }
 
-// export interface Message {
-//   id: string;
-//   text: string;
-//   sender_id: string;
-//   receiver_id: string;
-//   timestamp: Date;
-// }
+  async getChatPartners(userId: string): Promise<ChatPartner[]> {
+    try {
+      const messages = await databases.listDocuments(
+        config.databaseId!,
+        'chat',
+        [
+          Query.or([
+            Query.equal('sender_id', userId),
+            Query.equal('receiver_id', userId)
+          ]),
+          Query.orderDesc('created_at'),
+          Query.limit(100)
+        ]
+      );
 
-// export interface User {
-//   id: string;
-//   name: string;
-//   role: 'patient' | 'nutritionist';
-//   avatar: string;
-//   is_online: boolean;
-// }
+      // Get unique chat partners
+      const chatPartners = messages.documents.reduce((acc: ChatPartner[], message: ChatMessage) => {
+        const partnerId = message.sender_id === userId ? message.receiver_id : message.sender_id;
+        if (!acc.find((chat) => chat.partnerId === partnerId)) {
+          acc.push({
+            partnerId,
+            lastMessage: message.content,
+            timestamp: message.created_at,
+            unread: message.receiver_id === userId && !message.is_read ? 1 : 0,
+            user: {} as User // Will be populated below
+          });
+        }
+        return acc;
+      }, []);
 
-// class ChatService {
-//   // Mendapatkan daftar chat untuk pengguna tertentu
-//   async getUserChats(userId: string) {
-//     try {
-//       return await databases.listDocuments(
-//         DATABASE_ID,
-//         MESSAGES_COLLECTION_ID,
-//         [
-//           Query.equal('sender_id', userId),
-//           Query.orderDesc('timestamp'),
-//         ]
-//       );
-//     } catch (error) {
-//       console.error('Error getting user chats:', error);
-//       throw error;
-//     }
-//   }
+      // Get user details for each partner
+      const partnersWithDetails = await Promise.all(
+        chatPartners.map(async (chat) => {
+          const user = await databases.getDocument(
+            config.databaseId!,
+            'users',
+            chat.partnerId
+          );
+          return { ...chat, user };
+        })
+      );
 
-//   // Mengirim pesan baru
-//   async sendMessage(senderId: string, receiverId: string, text: string) {
-//     try {
-//       const message = {
-//         sender_id: senderId,
-//         receiver_id: receiverId,
-//         text,
-//         timestamp: new Date(),
-//       };
+      return partnersWithDetails;
+    } catch (error) {
+      console.error('Error getting chat partners:', error);
+      return [];
+    }
+  }
 
-//       return await databases.createDocument(
-//         DATABASE_ID,
-//         MESSAGES_COLLECTION_ID,
-//         ID.unique(),
-//         message
-//       );
-//     } catch (error) {
-//       console.error('Error sending message:', error);
-//       throw error;
-//     }
-//   }
+  async getChatMessages(userId: string, partnerId: string): Promise<ChatMessage[]> {
+    try {
+      const response = await databases.listDocuments(
+        config.databaseId!,
+        'chat',
+        [
+          Query.or([
+            Query.and([
+              Query.equal('sender_id', userId),
+              Query.equal('receiver_id', partnerId)
+            ]),
+            Query.and([
+              Query.equal('sender_id', partnerId),
+              Query.equal('receiver_id', userId)
+            ])
+          ]),
+          Query.orderDesc('created_at')
+        ]
+      );
 
-//   // Mendapatkan riwayat chat antara dua pengguna
-//   async getChatHistory(userId1: string, userId2: string) {
-//     try {
-//       return await databases.listDocuments(
-//         DATABASE_ID,
-//         MESSAGES_COLLECTION_ID,
-//         [
-//           Query.equal('sender_id', [userId1, userId2]),
-//           Query.equal('receiver_id', [userId1, userId2]),
-//           Query.orderAsc('timestamp'),
-//         ]
-//       );
-//     } catch (error) {
-//       console.error('Error getting chat history:', error);
-//       throw error;
-//     }
-//   }
+      return response.documents;
+    } catch (error) {
+      console.error('Error getting chat messages:', error);
+      return [];
+    }
+  }
 
-//   // Subscribe ke pesan baru
-//   subscribeToMessages(callback: (message: Message) => void) {
-//     return client.subscribe(`databases.${DATABASE_ID}.collections.${MESSAGES_COLLECTION_ID}.documents`, 
-//       (response: RealtimeResponseEvent<Message>) => {
-//         if (response.events.includes('databases.*.collections.*.documents.*.create')) {
-//           callback(response.payload);
-//         }
-//     });
-//   }
+  async sendMessage(senderId: string, receiverId: string, content: string): Promise<ChatMessage | null> {
+    try {
+      const message = {
+        sender_id: senderId,
+        receiver_id: receiverId,
+        content,
+        is_read: false,
+        created_at: new Date().toISOString()
+      };
 
-//   // Update status online pengguna
-//   async updateUserOnlineStatus(userId: string, isOnline: boolean) {
-//     try {
-//       return await databases.updateDocument(
-//         DATABASE_ID,
-//         USERS_COLLECTION_ID,
-//         userId,
-//         { is_online: isOnline }
-//       );
-//     } catch (error) {
-//       console.error('Error updating user online status:', error);
-//       throw error;
-//     }
-//   }
+      const response = await databases.createDocument(
+        config.databaseId!,
+        'chat',
+        'unique()',
+        message
+      );
 
-//   // Mendapatkan daftar ahli gizi yang online
-//   async getOnlineNutritionists() {
-//     try {
-//       return await databases.listDocuments(
-//         DATABASE_ID,
-//         USERS_COLLECTION_ID,
-//         [
-//           Query.equal('role', 'nutritionist'),
-//           Query.equal('is_online', true),
-//         ]
-//       );
-//     } catch (error) {
-//       console.error('Error getting online nutritionists:', error);
-//       throw error;
-//     }
-//   }
-// }
+      return response;
+    } catch (error) {
+      console.error('Error sending message:', error);
+      return null;
+    }
+  }
 
-// export const chatService = new ChatService();
+  async markMessageAsRead(messageId: string): Promise<boolean> {
+    try {
+      await databases.updateDocument(
+        config.databaseId!,
+        'chat',
+        messageId,
+        { is_read: true }
+      );
+      return true;
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+      return false;
+    }
+  }
+
+  async updateAvailability(nutritionistId: string, available: boolean): Promise<boolean> {
+    try {
+      await databases.updateDocument(
+        config.databaseId!,
+        'ahligizi',
+        nutritionistId,
+        { available }
+      );
+      return true;
+    } catch (error) {
+      console.error('Error updating availability:', error);
+      return false;
+    }
+  }
+}
+
+export const chatService = new ChatService();
