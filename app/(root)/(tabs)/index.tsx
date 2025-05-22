@@ -1,11 +1,27 @@
 import icons from '@/constants/icons';
 import images from '@/constants/images';
+import { logout } from '@/lib/appwrite';
+import { useGlobalContext } from '@/lib/global-provider';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 const Home = () => {
+  
+  const [menuVisible, setMenuVisible] = useState(false);
+  const { user,refetch } = useGlobalContext();
   const router = useRouter();
+
+    const handleLogout = async () => {
+      const result = await logout();
+      if (result) {
+        Alert.alert("Success", "Logged out successfully");
+        refetch();
+      } else {
+        Alert.alert("Error", "Failed to logout");
+      }
+    };
+  
 
   return (
     <View className="flex-1 bg-[#B7E5E7] relative">
@@ -23,12 +39,45 @@ const Home = () => {
           className="w-44 h-20"
           resizeMode="contain"
         />
-        <TouchableOpacity>
+        <TouchableOpacity  onPress={() => setMenuVisible(!menuVisible)}>
           <Image 
-            source={icons.profile}
+            source={{uri:user?.avatar}}
             className="w-10 h-10 rounded-full"
           />
-        </TouchableOpacity>
+            </TouchableOpacity>
+            {menuVisible && (
+              <>
+              {/* Transparent overlay to close when tapping outside */}
+              <TouchableOpacity 
+                className="absolute inset-0 z-40" 
+                onPress={() => setMenuVisible(false)} 
+              />
+
+              <View className="absolute top-20 right-4 bg-white rounded-2xl p-4 shadow-xl w-56 z-50">
+                <TouchableOpacity 
+                  className="flex-row items-center mb-4"
+                  onPress={() => {
+                    setMenuVisible(false);
+                    handleLogout(); // <- panggil fungsi logout yang sudah kamu buat
+                  }}
+                >
+                  <Image source={icons.logout} className="w-6 h-6 mr-3 tint-red-500" />
+                  <Text className="text-lg font-semibold text-black">Logout</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  className="flex-row items-center"
+                  onPress={() => {
+                    setMenuVisible(false);
+                    router.push('/profile');
+                  }}
+                >
+                  <Text className="text-lg font-semibold text-black">About Us</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+          
       </View>
 
       {/* Carousel Section */}

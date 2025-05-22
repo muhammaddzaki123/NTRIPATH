@@ -23,6 +23,7 @@ const DietRecommendations = () => {
     berat: string;
     urt: string;
     penukar: string;
+    exmenu: string;
   }>) => (
     <View className="mt-4">
       <Text className="text-gray-800 font-semibold text-base mb-2">{title}</Text>
@@ -33,6 +34,7 @@ const DietRecommendations = () => {
             <Text className="w-20 text-center text-gray-700">{meal.berat}</Text>
             <Text className="w-24 text-center text-gray-700">{meal.urt}</Text>
             <Text className="w-24 text-center text-gray-700">{meal.penukar}</Text>
+            <Text className="w-24 text-center text-gray-700">{meal.exmenu}</Text>
           </View>
         ))}
       </View>
@@ -64,13 +66,14 @@ const DietRecommendations = () => {
             <Text className="w-20 text-center font-bold text-gray-800">Berat</Text>
             <Text className="w-24 text-center font-bold text-gray-800">URT</Text>
             <Text className="w-24 text-center font-bold text-gray-800">Penukar</Text>
+            <Text className="w-24 text-center font-bold text-gray-800">exmenu</Text>
           </View>
         </View>
 
         {plan.meals.pagi && renderMealSection("Pagi", plan.meals.pagi)}
-        {plan.meals.snackPagi && renderMealSection("Snack Pagi", plan.meals.snackPagi)}
+        {plan.meals.selinganPagi && renderMealSection("Selingan Pagi", plan.meals.selinganPagi)}
         {plan.meals.siang && renderMealSection("Siang", plan.meals.siang)}
-        {plan.meals.snackSiang && renderMealSection("Snack Siang", plan.meals.snackSiang)}
+        {plan.meals.selinganSiang && renderMealSection("Selingan Siang", plan.meals.selinganSiang)}
         {plan.meals.malam && renderMealSection("Malam", plan.meals.malam)}
       </View>
     );
@@ -87,7 +90,7 @@ const DietRecommendations = () => {
                       className="w-6 h-6 rotate-180"
                     />
                     </TouchableOpacity>
-                <Text className="text-white text-xl font-bold ml-4">ARTIKEL GIZI</Text>
+                <Text className="text-white text-xl font-bold ml-4">DIET RECOMENDATIONS</Text>
               <TouchableOpacity onPress={() => router.back()} className="ml-auto">
             <Text className="text-3xl text-white mr-4">×</Text>
         </TouchableOpacity>
