@@ -1,7 +1,7 @@
-import icons from '@/constants/icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Image, SafeAreaView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const IMTCalculator = () => {
   const router = useRouter();
@@ -31,18 +31,18 @@ const IMTCalculator = () => {
   };
 
   return (
-    <SafeAreaView className='bg-primary-500 h-full p-4'>
-      <View className="flex-1 bg-[#40E0D0]">
+    <SafeAreaView className='bg-primary-400 h-full p-4'>
+      <View className="flex-1 bg-primary-500 items-center-center rounded-xl mt-5">
         {/* Header */}
-        <View className="flex-row items-center p-4">
-          <TouchableOpacity onPress={() => router.back()}>
-            <Image source={icons.rightArrow} className="w-6 h-6 rotate-180" />
-          </TouchableOpacity>
-          <Text className="text-white text-xl font-bold ml-4">HITUNG IMT</Text>
-          <TouchableOpacity onPress={() => router.back()} className="ml-auto">
-            <Text className="text-3xl text-white">×</Text>
-          </TouchableOpacity>
-        </View>
+      <View className="flex-row items-center pt-5 border-b border-white pb-2 mb-4">
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color={"white"} className='ml-2' />
+        </TouchableOpacity>
+        <Text className="text-white text-xl font-bold  ml-4 ">DIET PLAN</Text>
+        <TouchableOpacity onPress={() => router.back()} className="ml-auto">
+          <Text className="text-3xl text-white mr-4">×</Text>
+        </TouchableOpacity>
+      </View>
 
         {/* Content */}
         <View className="flex-1 px-4">

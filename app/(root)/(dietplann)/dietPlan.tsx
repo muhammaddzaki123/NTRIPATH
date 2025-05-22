@@ -1,8 +1,8 @@
-import icons from '@/constants/icons';
+import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { Stack, router } from 'expo-router';
 import React, { useState } from 'react';
-import { Image, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const DietPlan = () => {
   const [gender, setGender] = useState('');
@@ -61,21 +61,18 @@ const DietPlan = () => {
   };
 
   return (
-        <SafeAreaView className='bg-primary-500 h-full p-4'>
-          {/* Header */}
-      <ScrollView className="flex-1 bg-[#40E0D0]">
-          <View className="flex-row items-center ">
-            <TouchableOpacity onPress={() => router.back()}>
-              <Image 
-                source={icons.rightArrow}
-                className="w-6 h-6 rotate-180"
-              />
-            </TouchableOpacity>
-            <Text className="text-white text-xl font-bold ml-4">ARTIKEL GIZI</Text>
-            <TouchableOpacity onPress={() => router.back()} className="ml-auto">
-              <Text className="text-3xl text-white mr-4">×</Text>
-            </TouchableOpacity>
-          </View>
+    <SafeAreaView className='bg-primary-400 h-full p-4 '>
+      <View className="flex-1 bg-primary-500 items-center-center rounded-xl mt-5" >
+      {/* Header */}
+      <View className="flex-row items-center pt-5 border-b border-white pb-2 mb-4">
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color={"white"} className='ml-2' />
+        </TouchableOpacity>
+        <Text className="text-white text-xl font-bold  ml-4 ">DIET PLAN</Text>
+        <TouchableOpacity onPress={() => router.back()} className="ml-auto">
+          <Text className="text-3xl text-white mr-4">×</Text>
+        </TouchableOpacity>
+      </View>
 
       <Stack.Screen
         options={{
@@ -85,6 +82,7 @@ const DietPlan = () => {
           headerTitleStyle: { fontWeight: 'bold' },
         }}
         />
+
       
       <View className="m-4 p-6 bg-[#5F9EA0] rounded-xl">
         <View className="flex-row justify-between mb-4">
@@ -216,7 +214,7 @@ const DietPlan = () => {
           )}
         </View>
       </View>
-    </ScrollView>
+    </View>
   </SafeAreaView>
   );
 };

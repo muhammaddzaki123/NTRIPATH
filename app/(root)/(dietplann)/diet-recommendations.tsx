@@ -1,9 +1,8 @@
 import { DIET_PLANS } from '@/constants/diet-config';
-import icons from '@/constants/icons';
+import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
-import { Image, SafeAreaView, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-
+import { SafeAreaView, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 const DietRecommendations = () => {
   const params = useLocalSearchParams();
@@ -26,16 +25,16 @@ const DietRecommendations = () => {
     penukar: string;
     exmenu: string;
   }>) => (
-    <View className="mt-4">
+    <View className="mt-2">
       <Text className="text-gray-800 font-semibold text-base mb-2">{title}</Text>
       <View className="space-y-2">
         {meals.map((meal, index) => (
-          <View key={`${title}-${index}`} className="flex-row justify-between items-center py-1">
-            <Text className="flex-1 text-gray-700">{meal.bahan}</Text>
-            <Text className="w-20 text-center text-gray-700">{meal.berat}</Text>
+          <View key={`${title}-${index}`} className="flex-row items-center space-x-2 py-1">
+            <Text className="w-24 flex text-gray-700">{meal.bahan}</Text>
+            <Text className="w-24 text-center text-gray-700">{meal.berat}</Text>
             <Text className="w-24 text-center text-gray-700">{meal.urt}</Text>
             <Text className="w-24 text-center text-gray-700">{meal.penukar}</Text>
-            <Text className="w-24 text-center text-gray-700">{meal.exmenu}</Text>
+            <Text className="w-30 text-center text-gray-700">{meal.exmenu}</Text>
           </View>
         ))}
       </View>
@@ -56,21 +55,21 @@ const DietRecommendations = () => {
     }
 
     return (
-      <View className="bg-white rounded-2xl p-6 shadow-lg mb-6">
+      <View className="bg-white rounded-2xl p-6 shadow-lg mb-3">
         <Text className="text-xl font-bold text-center text-gray-800 mb-6">
           {plan.title}
         </Text>
         
-        <ScrollView horizontal={true} showsHorizontalScrollIndicator={true} className="mb-4">
-          <View className="min-w-[600px]">
-            <ScrollView showsVerticalScrollIndicator={true} className="max-h-96">
+        <ScrollView horizontal={true} showsHorizontalScrollIndicator={true} className="mb-2">
+          <View className="min-w-[500px]">
+            <ScrollView showsVerticalScrollIndicator={true} className="max-h-[510px]">
               <View className="border-b border-gray-200 pb-2 mb-4">
-                <View className="flex-row justify-between">
-                  <Text className="flex-1 font-bold text-gray-800">Bahan</Text>
-                  <Text className="w-20 text-center font-bold text-gray-800">Berat</Text>
+                <View className="flex-row items-center space-x-2">
+                  <Text className="w-24 flex font-bold text-gray-800">Bahan</Text>
+                  <Text className="w-24 text-center font-bold text-gray-800">Berat</Text>
                   <Text className="w-24 text-center font-bold text-gray-800">URT</Text>
                   <Text className="w-24 text-center font-bold text-gray-800">Penukar</Text>
-                  <Text className="w-24 text-center font-bold text-gray-800">exmenu</Text>
+                  <Text className="w-30 text-center font-bold text-gray-800">Contoh Menu</Text>
                 </View>
               </View>
 
@@ -87,19 +86,17 @@ const DietRecommendations = () => {
   };
 
   return (
-    <SafeAreaView className='bg-primary-500 h-full p-4'>
+    <SafeAreaView className='bg-primary-400 h-full p-4'>
         {/* Header */}
-        <ScrollView className="flex-1 bg-[#40E0D0]">
-              <View className="flex-row items-center ">
-                <TouchableOpacity onPress={() => router.back()}>
-                    <Image 
-                      source={icons.rightArrow}
-                      className="w-6 h-6 rotate-180"
-                    />
-                    </TouchableOpacity>
-                <Text className="text-white text-xl font-bold ml-4">DIET RECOMENDATIONS</Text>
-              <TouchableOpacity onPress={() => router.back()} className="ml-auto">
-            <Text className="text-3xl text-white mr-4">×</Text>
+        <View className="flex-1 bg-primary-500 items-center-center rounded-xl mt-5">
+      {/* Header */}
+      <View className="flex-row items-center pt-5 border-b border-white pb-2 mb-4">
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color={"white"} className='ml-2' />
+        </TouchableOpacity>
+        <Text className="text-white text-xl font-bold  ml-4 ">DIET PLAN</Text>
+        <TouchableOpacity onPress={() => router.back()} className="ml-auto">
+          <Text className="text-3xl text-white mr-4">×</Text>
         </TouchableOpacity>
       </View>
 
@@ -112,35 +109,21 @@ const DietRecommendations = () => {
           headerShadowVisible: false,
         }}
       />
-      <View className="p-4">
+      <View className="p-2">
         {renderDietPlan()}
         
-        <View className="flex-row justify-between space-x-4 mt-2 mb-6">
+        <View className="flex-row justify-between space-x-4 mt-1 mb-6">
           <TouchableOpacity 
             className="flex-1 bg-white rounded-full py-4 items-center shadow-sm"
             onPress={() => router.back()}
           >
             <Text className="text-gray-800 font-semibold">HITUNG ULANG</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            className="flex-1 bg-white rounded-full py-4 items-center shadow-sm"
-            onPress={() => {
-              // Navigate to diet recommendations
-              router.push({
-                pathname: "/diet-recommendations",
-                params: { disease, calories: roundedCalories }
-              });
-            }}
-          >
-            <Text className="text-gray-800 font-semibold">TEMUKAN DIET PLAN</Text>
-          </TouchableOpacity>
+          </TouchableOpacity>       
         </View>
       </View>
-    </ScrollView>
+    </View>
   </SafeAreaView>
   );
 };
 
 export default DietRecommendations;
-
