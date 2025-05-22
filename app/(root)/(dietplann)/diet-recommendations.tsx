@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import { Image, SafeAreaView, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
+
 const DietRecommendations = () => {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -60,21 +61,27 @@ const DietRecommendations = () => {
           {plan.title}
         </Text>
         
-        <View className="border-b border-gray-200 pb-2 mb-4">
-          <View className="flex-row justify-between">
-            <Text className="flex-1 font-bold text-gray-800">Bahan</Text>
-            <Text className="w-20 text-center font-bold text-gray-800">Berat</Text>
-            <Text className="w-24 text-center font-bold text-gray-800">URT</Text>
-            <Text className="w-24 text-center font-bold text-gray-800">Penukar</Text>
-            <Text className="w-24 text-center font-bold text-gray-800">exmenu</Text>
-          </View>
-        </View>
+        <ScrollView horizontal={true} showsHorizontalScrollIndicator={true} className="mb-4">
+          <View className="min-w-[600px]">
+            <ScrollView showsVerticalScrollIndicator={true} className="max-h-96">
+              <View className="border-b border-gray-200 pb-2 mb-4">
+                <View className="flex-row justify-between">
+                  <Text className="flex-1 font-bold text-gray-800">Bahan</Text>
+                  <Text className="w-20 text-center font-bold text-gray-800">Berat</Text>
+                  <Text className="w-24 text-center font-bold text-gray-800">URT</Text>
+                  <Text className="w-24 text-center font-bold text-gray-800">Penukar</Text>
+                  <Text className="w-24 text-center font-bold text-gray-800">exmenu</Text>
+                </View>
+              </View>
 
-        {plan.meals.pagi && renderMealSection("Pagi", plan.meals.pagi)}
-        {plan.meals.selinganPagi && renderMealSection("Selingan Pagi", plan.meals.selinganPagi)}
-        {plan.meals.siang && renderMealSection("Siang", plan.meals.siang)}
-        {plan.meals.selinganSiang && renderMealSection("Selingan Siang", plan.meals.selinganSiang)}
-        {plan.meals.malam && renderMealSection("Malam", plan.meals.malam)}
+              {plan.meals.pagi && renderMealSection("Pagi", plan.meals.pagi)}
+              {plan.meals.selinganPagi && renderMealSection("Selingan Pagi", plan.meals.selinganPagi)}
+              {plan.meals.siang && renderMealSection("Siang", plan.meals.siang)}
+              {plan.meals.selinganSiang && renderMealSection("Selingan Siang", plan.meals.selinganSiang)}
+              {plan.meals.malam && renderMealSection("Malam", plan.meals.malam)}
+            </ScrollView>
+          </View>
+        </ScrollView>
       </View>
     );
   };
@@ -136,3 +143,4 @@ const DietRecommendations = () => {
 };
 
 export default DietRecommendations;
+
