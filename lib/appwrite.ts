@@ -63,8 +63,50 @@ export async function login() {
     const userId = url.searchParams.get("userId")?.toString();
     if (!secret || !userId) throw new Error("Create OAuth2 token failed");
 
+    // Cek apakah user ada di database
+    const userDoc = await databases.listDocuments(
+      config.databaseId!,
+      config.usersProfileCollectionId!,
+      [Query.equal("$id", userId)]
+    );
+    if (userDoc.total === 0) {
+      throw new Error("User Google belum terdaftar di database");
+    }
+
     const session = await account.createSession(userId, secret);
     if (!session) throw new Error("Failed to create session");
+
+    return true;
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+}
+
+// Fungsi login manual dengan username dan password
+export async function loginManual(username: string, password: string) {
+  try {
+    // Cari user berdasarkan username (misal di field 'name')
+    const userDoc = await databases.listDocuments(
+      config.databaseId!,
+      config.usersProfileCollectionId!,
+      [Query.equal("name", username)]
+    );
+
+    if (userDoc.total === 0) {
+      throw new Error("User tidak ditemukan");
+    }
+
+    const user = userDoc.documents[0];
+
+    // Validasi password (asumsi password disimpan di field 'password')
+    if (user.password !== password) {
+      throw new Error("Password salah");
+    }
+
+    // Buat session menggunakan user id dan password
+    const session = await account.createSession(user.$id, password);
+    if (!session) throw new Error("Gagal membuat session");
 
     return true;
   } catch (error) {
