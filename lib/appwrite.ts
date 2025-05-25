@@ -10,9 +10,6 @@ import {
   Storage
 } from "react-native-appwrite";
 
-if (!process.env.EXPO_PUBLIC_APPWRITE_APP_ID) {
-  throw new Error("EXPO_PUBLIC_APPWRITE_APP_ID is not set");}
-
 export const config = {
   platform: "com.poltekes.nutripath",
   endpoint: process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT,
@@ -31,12 +28,6 @@ export const config = {
 
   // chat_messages
   chatMessagesCollectionId: process.env.EXPO_PUBLIC_APPWRITE_CHAT_MESSAGES_COLLECTION_ID,
-  
-  col: {
-    chatRooms:"68324491001548e8f062",
-    messages: "68324491001548e8f062",
-    user:"682c769c0039f1cce832",
-  }
 };
 
 export const client = new Client();
