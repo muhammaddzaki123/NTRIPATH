@@ -12,7 +12,7 @@ export default function Profile() {
 
   const handleSignOut = async () => {
     await signOut();
-    router.replace("/sign-in");
+    router.replace("./sign-in");
   };
   return (
     <View style={{ flex: 1, alignItems: "center", gap: 16, padding: 16 }}>

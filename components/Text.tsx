@@ -1,5 +1,5 @@
-import { Text as RNText, TextProps } from "react-native";
 import React from "react";
+import { Text as RNText, TextProps } from "react-native";
 
 interface CustomTextProps extends TextProps {
   children: React.ReactNode;

@@ -11,8 +11,7 @@ import {
 } from "react-native";
 import { Text } from "@/components/Text";
 import { Message, ChatRoom } from "@/utils/types";
-// import { database, config, client } from "@/utils/appwrite";
-import { config, databases, client } from "@/lib/appwrite";
+import { databases, config, client } from "@/lib/appwrite";
 import { ID, Query } from "react-native-appwrite";
 import { LegendList } from "@legendapp/list";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -53,7 +52,7 @@ export default function ChatRoomScreen() {
   // Subscribe to messages
   React.useEffect(() => {
     // listen for updates on the chat room document
-    const channel = `databases.${config.databaseId}.collections.${config.col.chatRooms}.documents.${chatRoomId}`;
+    const channel = `databases.${config.databaseId!}.collections.${config.col.chatRooms}.documents.${chatRoomId}`;
 
     const unsubscribe = client.subscribe(channel, () => {
       console.log("chat room updated");
@@ -79,7 +78,7 @@ export default function ChatRoomScreen() {
   // get chat room info by chat id
   async function getChatRoom() {
     const document = await databases.getDocument(
-      config.databaseId,
+      config.databaseId!,
       config.col.chatRooms,
       chatRoomId as string
     );
@@ -95,7 +94,7 @@ export default function ChatRoomScreen() {
   async function getMessages() {
     try {
       const { documents, total } = await databases.listDocuments(
-        config.databaseId,
+        config.databaseId!,
         config.col.messages,
         [
           Query.equal("chatRoomId", chatRoomId),
@@ -126,18 +125,18 @@ export default function ChatRoomScreen() {
 
     try {
       // create a new message document
-      await database.createDocument(
-        config.db,
+      await databases.createDocument(
+        config.databaseId!,
         config.col.messages,
         ID.unique(),
-        messages
+        message
       );
       setMessageContent("");
 
       console.log("updating chat room", chatRoomId);
       // Update chat room updatedAt field
       await databases.updateDocument(
-        config.databaseId,
+        config.databaseId!,
         config.col.chatRooms,
         chatRoomId as string,
         { $updatedAt: new Date().toISOString() }
@@ -163,7 +162,7 @@ export default function ChatRoomScreen() {
           headerRight: () => (
             <Link
               href={{
-                pathname: "/settings/[chat]",
+                pathname: "./settings/[chat]",
                 params: { chat: chatRoomId as string },
               }}
             >

@@ -15,11 +15,11 @@ export default function ChatSettings() {
   async function handleDeleteChat() {
     try {
       await databases.deleteDocument(
-        config.databaseId,
+        config.databaseId!,
         config.col.chatRooms,
         chatRoomId as string
       );
-      router.replace("/(chat)");
+      router.replace("./(chat)");
     } catch (error) {
       console.error(error);
     }

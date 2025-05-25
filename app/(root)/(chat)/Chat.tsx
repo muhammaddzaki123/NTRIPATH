@@ -2,7 +2,7 @@ import { FlatList, RefreshControl, View } from "react-native";
 import { Text } from "@/components/Text";
 import { Link } from "expo-router";
 import { IconSymbol } from "@/components/IconSymbol";
-import { database, appwriteConfig } from "@/lib/appwrite";
+import { databases, config } from "@/lib/appwrite";
 import { useState, useEffect } from "react";
 import { ChatRoom } from "@/utils/types";
 import { Query } from "react-native-appwrite";
@@ -28,9 +28,9 @@ export default function Chat() {
 
   const fetchChatRooms = async () => {
     try {
-      const { documents, total } = await database.listDocuments(
-        appwriteConfig.db,
-        appwriteConfig.col.chatRooms,
+      const { documents, total } = await databases.listDocuments(
+        config.databaseId!,
+        config.col.chatRooms,
         [Query.limit(100)]
       );
 
@@ -65,7 +65,7 @@ export default function Chat() {
         return (
           <Link
             href={{
-              pathname: "/[chat]",
+              pathname: "./[chat]",
               params: { chat: item.id },
             }}
           >

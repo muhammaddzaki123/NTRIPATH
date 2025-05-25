@@ -13,13 +13,11 @@
       "bundleIdentifier": "com.poltekes.nutripath",
       "icon": "./assets/images/logoawal.png"
     },
-
     "splash": {
       "image": "./assets/images/white-gradient.png",
       "resizeMode": "contain",
       "backgroundColor": "#BFF8F8"
     },
-    
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logoawal.png",
@@ -45,7 +43,8 @@
             "./assets/fonts/Rubik-SemiBold.ttf"
           ]
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

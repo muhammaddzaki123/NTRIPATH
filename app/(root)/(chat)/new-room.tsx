@@ -4,8 +4,7 @@ import Input from "@/components/Input";
 import { useState } from "react";
 import { Text } from "@/components/Text";
 import { Stack, router } from "expo-router";
-// import { Secondary } from "@/colors";
-// import { appwriteConfig, database } from "@/utils/appwrite";
+import { Secondary } from "@/colors";
 import { config, databases } from "@/lib/appwrite";
 import { ID } from "react-native-appwrite";
 
@@ -17,7 +16,7 @@ export default function NewRoom() {
     try {
       setIsLoading(true);
       const room = await databases.createDocument(
-        config.databaseId,
+        config.databaseId!,
         config.col.chatRooms,
         ID.unique(),
         {
