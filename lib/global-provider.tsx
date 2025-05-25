@@ -1,7 +1,7 @@
 import React, { createContext, ReactNode, useContext } from "react";
-
 import { getCurrentUser } from "./appwrite";
 import { useAppwrite } from "./useAppwrite";
+import { ChatProvider } from "@/contexts/ChatContext";
 
 interface GlobalContextType {
   isLogged: boolean;
@@ -43,7 +43,9 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
         refetch,
       }}
     >
-      {children}
+      <ChatProvider>
+        {children}
+      </ChatProvider>
     </GlobalContext.Provider>
   );
 };

@@ -200,7 +200,7 @@ const Home = () => {
 
           <TouchableOpacity 
             className="items-center"
-            onPress={() => router.push('./dietPlan')}
+            onPress={() => router.push('/konsultasi')}
           >
             <View className="bg-[#dbe7e7] rounded-full w-16 h-16 items-center justify-center">
               <Image 

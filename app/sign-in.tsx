@@ -38,7 +38,7 @@ const Auth = () => {
       >
         <Image
           source={images.logoawal}
-          className=" size-24"
+          className=" size-50"
           resizeMode="contain"
         />
 
