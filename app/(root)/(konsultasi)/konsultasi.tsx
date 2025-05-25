@@ -1,10 +1,10 @@
-import { useChat } from '../../../contexts/ChatContext';
+import { useChat } from '@/contexts/ChatContext';
 import { FontAwesome } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import React from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Nutritionist } from '../../../types/chat';
+import { Nutritionist } from '@/types/chat';
 
 const KonsultasiScreen = () => {
   const { nutritionists, unreadMessages, loading } = useChat();
@@ -25,7 +25,7 @@ const KonsultasiScreen = () => {
   return (
     <SafeAreaView className="flex-1 bg-[#1CD6CE]">
       <View className="flex-row items-center px-4 py-3">
-        <Link href="/" className="mr-auto">
+        <Link href="./" className="mr-auto">
           <View className="w-8 h-8 justify-center">
             <Text className="text-white text-2xl">←</Text>
           </View>
@@ -41,7 +41,7 @@ const KonsultasiScreen = () => {
             nutritionists.map((nutritionist: Nutritionist) => (
               <Link
                 key={nutritionist.$id}
-                href={`/chat/${nutritionist.$id}`}
+                href={`./chat/${nutritionist.$id}`}
                 asChild
               >
                 <TouchableOpacity className="mb-4 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">

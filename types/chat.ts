@@ -12,11 +12,17 @@ export interface Message extends Models.Document {
 
 export interface Nutritionist extends Models.Document {
   name: string;
+  email: string;
   status: 'online' | 'offline';
   type: string;
   specialization: string;
+  description?: string;
   avatar?: string;
-  lastSeen?: string;
+  lastSeen: string;
+  experience: number;
+  rating: number;
+  price: number;
+  available: boolean;
 }
 
 export interface ChatSubscriptionResponse {

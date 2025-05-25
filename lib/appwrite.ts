@@ -10,7 +10,7 @@ import {
   Storage,
   Models
 } from "react-native-appwrite";
-import { Message, Nutritionist, ChatSubscriptionResponse } from "@/types/chat";
+import { Message, Nutritionist, ChatSubscriptionResponse } from "../types/chat";
 
 export const config = {
   platform: "com.poltekes.nutripath",
@@ -84,6 +84,53 @@ export async function logout() {
   } catch (error) {
     console.error(error);
     return false;
+  }
+}
+
+export async function loginAsNutritionist(email: string, password: string) {
+  try {
+    // Login dengan email/password
+    const session = await account.createSession(email, password);
+    
+    if (!session) throw new Error('Gagal membuat sesi');
+
+    // Dapatkan data user
+    const user = await account.get();
+    
+    // Verifikasi apakah user adalah ahli gizi
+    const nutritionist = await databases.listDocuments(
+      config.databaseId!,
+      config.ahligiziCollectionId!,
+      [
+        Query.equal('email', email),
+        Query.limit(1)
+      ]
+    );
+
+    if (nutritionist.documents.length === 0) {
+      // Jika user bukan ahli gizi, logout
+      await account.deleteSession('current');
+      throw new Error('Akun ini bukan akun ahli gizi');
+    }
+
+    // Update status online
+    await databases.updateDocument(
+      config.databaseId!,
+      config.ahligiziCollectionId!,
+      nutritionist.documents[0].$id,
+      {
+        status: 'online',
+        lastSeen: new Date().toISOString()
+      }
+    );
+
+    return {
+      user,
+      nutritionist: nutritionist.documents[0]
+    };
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
   }
 }
 
@@ -247,7 +294,29 @@ export async function getNutritionists(): Promise<Nutritionist[]> {
   }
 }
 
-export async function getChatMessages(chatId: string) {
+export async function logoutNutritionist(nutritionistId: string) {
+  try {
+    // Update status offline
+    await databases.updateDocument(
+      config.databaseId!,
+      config.ahligiziCollectionId!,
+      nutritionistId,
+      {
+        status: 'offline',
+        lastSeen: new Date().toISOString()
+      }
+    );
+
+    // Logout dari session
+    await account.deleteSession('current');
+    return true;
+  } catch (error) {
+    console.error('Logout error:', error);
+    throw error;
+  }
+}
+
+export async function getChatMessages(chatId: string): Promise<Message[]> {
   try {
     const response = await databases.listDocuments(
       config.databaseId!,
@@ -257,7 +326,23 @@ export async function getChatMessages(chatId: string) {
         Query.orderAsc('time')
       ]
     );
-    return response.documents;
+    
+    // Transform documents to Message type
+    return response.documents.map(doc => ({
+      $id: doc.$id,
+      $createdAt: doc.$createdAt,
+      $updatedAt: doc.$updatedAt,
+      $permissions: doc.$permissions,
+      $collectionId: doc.$collectionId,
+      $databaseId: doc.$databaseId,
+      chatId: doc.chatId,
+      userId: doc.userId,
+      nutritionistId: doc.nutritionistId,
+      text: doc.text,
+      sender: doc.sender,
+      time: doc.time,
+      read: doc.read
+    })) as Message[];
   } catch (error) {
     console.error('Error getting chat messages:', error);
     throw error;
