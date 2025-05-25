@@ -2,7 +2,7 @@ import { FlatList, RefreshControl, View } from "react-native";
 import { Text } from "@/components/Text";
 import { Link } from "expo-router";
 import { IconSymbol } from "@/components/IconSymbol";
-import { database, appwriteConfig } from "@/utils/appwrite";
+import { database, appwriteConfig } from "@/lib/appwrite";
 import { useState, useEffect } from "react";
 import { ChatRoom } from "@/utils/types";
 import { Query } from "react-native-appwrite";

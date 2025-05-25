@@ -16,8 +16,8 @@ export default function NewRoom() {
   async function createRoom() {
     try {
       setIsLoading(true);
-      const room = await database.createDocument(
-        config.db,
+      const room = await databases.createDocument(
+        config.databaseId,
         config.col.chatRooms,
         ID.unique(),
         {

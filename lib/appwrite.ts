@@ -33,7 +33,7 @@ export const config = {
   chatMessagesCollectionId: process.env.EXPO_PUBLIC_APPWRITE_CHAT_MESSAGES_COLLECTION_ID,
   
   col: {
-    Chatrooms:"68324491001548e8f062",
+    chatRooms:"68324491001548e8f062",
     messages: "68324491001548e8f062",
     user:"682c769c0039f1cce832",
   }

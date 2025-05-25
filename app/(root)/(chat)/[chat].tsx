@@ -11,8 +11,8 @@ import {
 } from "react-native";
 import { Text } from "@/components/Text";
 import { Message, ChatRoom } from "@/utils/types";
-// import { database, appwriteConfig, client } from "@/utils/appwrite";
-import { appwriteConfig, database, client } from "@/lib/appwrite";
+// import { database, config, client } from "@/utils/appwrite";
+import { config, databases, client } from "@/lib/appwrite";
 import { ID, Query } from "react-native-appwrite";
 import { LegendList } from "@legendapp/list";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -53,7 +53,7 @@ export default function ChatRoomScreen() {
   // Subscribe to messages
   React.useEffect(() => {
     // listen for updates on the chat room document
-    const channel = `databases.${appwriteConfig.db}.collections.${appwriteConfig.col.chatRooms}.documents.${chatRoomId}`;
+    const channel = `databases.${config.databaseId}.collections.${config.col.chatRooms}.documents.${chatRoomId}`;
 
     const unsubscribe = client.subscribe(channel, () => {
       console.log("chat room updated");
@@ -78,9 +78,9 @@ export default function ChatRoomScreen() {
 
   // get chat room info by chat id
   async function getChatRoom() {
-    const document = await database.getDocument(
-      appwriteConfig.db,
-      appwriteConfig.col.chatRooms,
+    const document = await databases.getDocument(
+      config.databaseId,
+      config.col.chatRooms,
       chatRoomId as string
     );
 
@@ -94,9 +94,9 @@ export default function ChatRoomScreen() {
   // get messages associated with chat id
   async function getMessages() {
     try {
-      const { documents, total } = await database.listDocuments(
-        appwriteConfig.db,
-        appwriteConfig.col.message,
+      const { documents, total } = await databases.listDocuments(
+        config.databaseId,
+        config.col.messages,
         [
           Query.equal("chatRoomId", chatRoomId),
           Query.limit(100),
@@ -127,18 +127,18 @@ export default function ChatRoomScreen() {
     try {
       // create a new message document
       await database.createDocument(
-        appwriteConfig.db,
-        appwriteConfig.col.message,
+        config.db,
+        config.col.messages,
         ID.unique(),
-        message
+        messages
       );
       setMessageContent("");
 
       console.log("updating chat room", chatRoomId);
       // Update chat room updatedAt field
-      await database.updateDocument(
-        appwriteConfig.db,
-        appwriteConfig.col.chatRooms,
+      await databases.updateDocument(
+        config.databaseId,
+        config.col.chatRooms,
         chatRoomId as string,
         { $updatedAt: new Date().toISOString() }
       );
