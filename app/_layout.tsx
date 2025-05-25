@@ -1,4 +1,5 @@
 import GlobalProvider from "@/lib/global-provider";
+import { ChatProvider } from "@/contexts/ChatContext";
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
 import { useEffect } from "react";
@@ -26,8 +27,14 @@ export default function RootLayout() {
 
   return (
     <GlobalProvider>
-      <Stack screenOptions={{ headerShown: false }} />
+      <ChatProvider>
+        <Stack 
+          screenOptions={{ 
+            headerShown: false,
+            animation: 'slide_from_right'
+          }} 
+        />
+      </ChatProvider>
     </GlobalProvider>
   );
 }
-

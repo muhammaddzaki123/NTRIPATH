@@ -7,7 +7,7 @@ import {
   getChatMessages as getChatMessagesAPI,
   markMessageAsRead as markMessageAsReadAPI,
   subscribeToChat as subscribeToChatAPI
-} from '@/lib/appwrite';
+} from '../lib/appwrite';
 
 interface ChatContextType {
   messages: { [key: string]: Message[] };
@@ -33,16 +33,21 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   // Fetch nutritionists
   useEffect(() => {
     const fetchNutritionists = async () => {
+      if (!user) return;
+      
       try {
+        setLoading(true);
         const fetchedNutritionists = await getNutritionistsAPI();
         setNutritionists(fetchedNutritionists);
       } catch (error) {
         console.error('Error fetching nutritionists:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchNutritionists();
-  }, []);
+  }, [user]);
 
   // Subscribe to real-time messages for current chat
   useEffect(() => {
