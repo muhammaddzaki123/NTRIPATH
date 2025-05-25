@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nutripath.app",
+      "bundleIdentifier": "com.poltekes.nutripath",
       "icon": "./assets/images/logoawal.png"
     },
 
