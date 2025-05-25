@@ -7,8 +7,10 @@ import {
   Databases,
   OAuthProvider,
   Query,
-  Storage
+  Storage,
+  Models
 } from "react-native-appwrite";
+import { Message, Nutritionist, ChatSubscriptionResponse } from "../types/chat";
 
 export const config = {
   platform: "com.poltekes.nutripath",
@@ -28,6 +30,8 @@ export const config = {
 
   // chat_messages
   chatMessagesCollectionId: process.env.EXPO_PUBLIC_APPWRITE_CHAT_MESSAGES_COLLECTION_ID,
+  // nutritionist chat collections
+  nutritionistChatCollectionId: process.env.EXPO_PUBLIC_APPWRITE_NUTRITIONIST_CHAT_COLLECTION_ID,
 };
 
 export const client = new Client();
@@ -168,5 +172,102 @@ export async function getPropertyById({ id }: { id: string }) {
   } catch (error) {
     console.error(error);
     return null;
+  }
+}
+
+// Chat related functions
+export async function sendMessage(message: Omit<Message, '$id' | 'sender' | 'time' | 'read'>) {
+  try {
+    const response = await databases.createDocument(
+      config.databaseId!,
+      config.chatMessagesCollectionId!,
+      'unique()',
+      {
+        ...message,
+        sender: 'user',
+        time: new Date().toISOString(),
+        read: false
+      }
+    );
+    return response;
+  } catch (error) {
+    console.error('Error sending message:', error);
+    throw error;
+  }
+}
+
+export async function markMessageAsRead(messageId: string) {
+  try {
+    const response = await databases.updateDocument(
+      config.databaseId!,
+      config.chatMessagesCollectionId!,
+      messageId,
+      { read: true }
+    );
+    return response;
+  } catch (error) {
+    console.error('Error marking message as read:', error);
+    throw error;
+  }
+}
+
+export async function getNutritionists(): Promise<Nutritionist[]> {
+  try {
+    const response = await databases.listDocuments(
+      config.databaseId!,
+      config.ahligiziCollectionId!,
+      [Query.orderAsc('name')]
+    );
+    return response.documents.map(doc => ({
+      ...doc,
+      name: doc.name,
+      status: doc.status as 'online' | 'offline',
+      type: doc.type,
+      specialization: doc.specialization,
+      avatar: doc.avatar,
+      lastSeen: doc.lastSeen
+    })) as Nutritionist[];
+  } catch (error) {
+    console.error('Error getting nutritionists:', error);
+    throw error;
+  }
+}
+
+export async function getChatMessages(chatId: string) {
+  try {
+    const response = await databases.listDocuments(
+      config.databaseId!,
+      config.chatMessagesCollectionId!,
+      [
+        Query.equal('chatId', chatId),
+        Query.orderAsc('time')
+      ]
+    );
+    return response.documents;
+  } catch (error) {
+    console.error('Error getting chat messages:', error);
+    throw error;
+  }
+}
+
+export async function subscribeToChat(
+  chatId: string, 
+  callback: (message: Message) => void
+) {
+  try {
+    return client.subscribe(
+      `databases.${config.databaseId}.collections.${config.chatMessagesCollectionId}.documents`,
+      (response: ChatSubscriptionResponse) => {
+        if (response.events.includes('databases.*.collections.*.documents.*.create')) {
+          const message = response.payload;
+          if (message.chatId === chatId) {
+            callback(message);
+          }
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Error subscribing to chat:', error);
+    throw error;
   }
 }

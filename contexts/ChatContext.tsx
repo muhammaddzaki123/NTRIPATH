@@ -1,148 +1,152 @@
-import { useGlobalContext } from '@/lib/global-provider';
-import React, { createContext, useContext, useEffect, useState } from 'react';
-
-interface Message {
-  id: number;
-  text: string;
-  sender: 'user' | 'nutritionist';
-  time: string;
-}
-
-type NutritionistType = 'Ahli Gizi Klinis' | 'Ahli Gizi Olahraga' | 'Ahli Gizi Medis';
-
-interface Nutritionist {
-  id: number;
-  name: string;
-  status: 'online' | 'offline';
-  type: NutritionistType;
-  avatar?: string;
-  specialization?: string;
-}
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useGlobalContext } from '../lib/global-provider';
+import { Message, Nutritionist, ChatSubscriptionResponse } from '../types/chat';
+import { 
+  sendMessage as sendMessageAPI, 
+  getNutritionists as getNutritionistsAPI,
+  getChatMessages as getChatMessagesAPI,
+  markMessageAsRead as markMessageAsReadAPI,
+  subscribeToChat as subscribeToChatAPI
+} from '@/lib/appwrite';
 
 interface ChatContextType {
   messages: { [key: string]: Message[] };
-  addMessage: (nutritionistId: string, message: Omit<Message, 'id'>) => void;
+  addMessage: (nutritionistId: string, text: string) => Promise<void>;
   nutritionists: Nutritionist[];
   currentChat: string | null;
   setCurrentChat: (chatId: string | null) => void;
-  markMessageAsRead: (chatId: string, messageId: number) => void;
+  markMessageAsRead: (messageId: string) => Promise<void>;
   unreadMessages: { [key: string]: number };
+  loading: boolean;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
   const [messages, setMessages] = useState<{ [key: string]: Message[] }>({});
+  const [nutritionists, setNutritionists] = useState<Nutritionist[]>([]);
   const [currentChat, setCurrentChat] = useState<string | null>(null);
   const [unreadMessages, setUnreadMessages] = useState<{ [key: string]: number }>({});
+  const [loading, setLoading] = useState(true);
   const { user } = useGlobalContext();
-  
-  const nutritionists: Nutritionist[] = [
-    {
-      id: 1,
-      name: 'Dr. BUDIONO',
-      status: 'online',
-      type: 'Ahli Gizi Klinis',
-      specialization: 'Spesialis Gizi Anak',
-    },
-    {
-      id: 2,
-      name: 'Dr. PURMONO',
-      status: 'online',
-      type: 'Ahli Gizi Olahraga',
-      specialization: 'Spesialis Nutrisi Atlet',
-    },
-    {
-      id: 3,
-      name: 'Dr. VIONO',
-      status: 'online',
-      type: 'Ahli Gizi Medis',
-      specialization: 'Spesialis Gizi Penyakit Dalam',
-    },
-  ];
 
-  const specializedResponses: Record<NutritionistType, string[]> = {
-    'Ahli Gizi Klinis': [
-      'Untuk anak-anak, penting sekali memperhatikan asupan gizi seimbang. Bisa dijelaskan pola makan anak Anda saat ini?',
-      'Pertumbuhan anak sangat tergantung pada nutrisi yang tepat. Mari kita diskusikan menu hariannya.',
-      'Apakah ada alergi makanan yang perlu diperhatikan?',
-    ],
-    'Ahli Gizi Olahraga': [
-      'Sebagai atlet, timing makan sangat penting. Bagaimana jadwal latihan Anda?',
-      'Mari kita sesuaikan asupan nutrisi dengan intensitas latihan Anda.',
-      'Apakah Anda sedang mempersiapkan kompetisi tertentu?',
-    ],
-    'Ahli Gizi Medis': [
-      'Mohon jelaskan riwayat kesehatan Anda secara detail.',
-      'Apakah ada pantangan makanan dari dokter sebelumnya?',
-      'Mari kita bahas cara mengatur pola makan yang sesuai dengan kondisi Anda.',
-    ],
-  };
+  // Fetch nutritionists
+  useEffect(() => {
+    const fetchNutritionists = async () => {
+      try {
+        const fetchedNutritionists = await getNutritionistsAPI();
+        setNutritionists(fetchedNutritionists);
+      } catch (error) {
+        console.error('Error fetching nutritionists:', error);
+      }
+    };
 
-  const simulateNutritionistResponse = (nutritionistId: string, userMessage: string) => {
-    setTimeout(() => {
-      const nutritionist = nutritionists.find(n => n.id === Number(nutritionistId));
-      if (!nutritionist) return;
+    fetchNutritionists();
+  }, []);
 
-      const responses = specializedResponses[nutritionist.type] || [
-        'Baik, saya mengerti kondisi Anda. Mari kita bahas lebih detail.',
-        'Terima kasih atas informasinya. Apakah ada keluhan lain?',
-        'Mohon jelaskan lebih detail tentang pola makan Anda.',
-      ];
+  // Subscribe to real-time messages for current chat
+  useEffect(() => {
+    if (!user || !currentChat) return;
 
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+    let unsubscribe: (() => void) | undefined;
+    
+    const setupSubscription = async () => {
+      try {
+        unsubscribe = await subscribeToChatAPI(currentChat, (newMessage: Message) => {
+          setMessages(prev => {
+            const chatMessages = prev[newMessage.chatId] || [];
+            return {
+              ...prev,
+              [newMessage.chatId]: [...chatMessages, newMessage]
+            };
+          });
+
+          // Update unread messages count for nutritionist messages
+          if (newMessage.sender === 'nutritionist' && currentChat !== newMessage.chatId) {
+            setUnreadMessages(prev => ({
+              ...prev,
+              [newMessage.chatId]: (prev[newMessage.chatId] || 0) + 1
+            }));
+          }
+        });
+      } catch (error) {
+        console.error('Error setting up chat subscription:', error);
+      }
+    };
+
+    setupSubscription();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [user, currentChat]);
+
+  // Fetch existing messages
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!user || !currentChat) return;
       
-      addMessage(nutritionistId, {
-        text: randomResponse,
-        sender: 'nutritionist',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      });
-    }, 1000 + Math.random() * 2000);
-  };
+      try {
+        setLoading(true);
+        const chatMessages = await getChatMessagesAPI(currentChat);
+        
+        setMessages(prev => ({
+          ...prev,
+          [currentChat]: chatMessages as Message[]
+        }));
 
-  const addMessage = (nutritionistId: string, message: Omit<Message, 'id'>) => {
-    setMessages(prev => {
-      const nutritionistMessages = prev[nutritionistId] || [];
-      const newMessage = {
-        ...message,
-        id: nutritionistMessages.length + 1,
-      };
-
-      if (message.sender === 'nutritionist' && currentChat !== nutritionistId) {
+        // Reset unread count for current chat
         setUnreadMessages(prev => ({
           ...prev,
-          [nutritionistId]: (prev[nutritionistId] || 0) + 1
+          [currentChat]: 0
         }));
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      const updatedMessages = {
-        ...prev,
-        [nutritionistId]: [...nutritionistMessages, newMessage]
-      };
+    fetchMessages();
+  }, [user, currentChat]);
 
-      if (message.sender === 'user') {
-        simulateNutritionistResponse(nutritionistId, message.text);
-      }
+  const addMessage = async (nutritionistId: string, text: string) => {
+    if (!user) return;
 
-      return updatedMessages;
-    });
-  };
-
-  const markMessageAsRead = (chatId: string, messageId: number) => {
-    setUnreadMessages(prev => ({
-      ...prev,
-      [chatId]: 0
-    }));
-  };
-
-  useEffect(() => {
-    if (currentChat) {
-      setUnreadMessages(prev => ({
-        ...prev,
-        [currentChat]: 0
-      }));
+    const chatId = `${user.$id}-${nutritionistId}`;
+    
+    try {
+      await sendMessageAPI({
+        userId: user.$id,
+        nutritionistId,
+        text,
+        chatId
+      });
+    } catch (error) {
+      console.error('Error sending message:', error);
     }
-  }, [currentChat]);
+  };
+
+  const markMessageAsRead = async (messageId: string) => {
+    try {
+      await markMessageAsReadAPI(messageId);
+      
+      // Update local state
+      setMessages(prev => {
+        const updatedMessages = { ...prev };
+        Object.keys(updatedMessages).forEach(chatId => {
+          updatedMessages[chatId] = updatedMessages[chatId].map(msg => 
+            msg.$id === messageId ? { ...msg, read: true } : msg
+          );
+        });
+        return updatedMessages;
+      });
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+    }
+  };
 
   return (
     <ChatContext.Provider 
@@ -153,7 +157,8 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         currentChat, 
         setCurrentChat,
         markMessageAsRead,
-        unreadMessages
+        unreadMessages,
+        loading
       }}
     >
       {children}

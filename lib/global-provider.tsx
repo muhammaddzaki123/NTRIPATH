@@ -1,7 +1,7 @@
 import React, { createContext, ReactNode, useContext } from "react";
 import { getCurrentUser } from "./appwrite";
 import { useAppwrite } from "./useAppwrite";
-import { ChatProvider } from "@/contexts/ChatContext";
+import { ChatProvider } from "../contexts/ChatContext";
 
 interface GlobalContextType {
   isLogged: boolean;
