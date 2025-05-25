@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
 import { loginAsNutritionist } from '@/lib/appwrite';
+import { router } from 'expo-router';
+import React, { useState } from 'react';
+import { ActivityIndicator, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LoginAhliGizi() {
@@ -21,7 +21,7 @@ export default function LoginAhliGizi() {
       
       const result = await loginAsNutritionist(email, password);
       if (result) {
-        router.replace('/(root)/(ahligizi)/dashboard' as any);
+        router.replace('/dashboard' as any);
       }
     } catch (err) {
       setError('Email atau password salah');

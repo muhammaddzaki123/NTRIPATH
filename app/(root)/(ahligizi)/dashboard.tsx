@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { getChatMessages, logoutNutritionist } from '@/lib/appwrite';
 import { Message } from '@/types/chat';
+import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function DashboardAhliGizi() {
   const [chats, setChats] = useState<Message[]>([]);
@@ -28,7 +28,7 @@ export default function DashboardAhliGizi() {
   const handleLogout = async () => {
     try {
       await logoutNutritionist('current');
-      router.replace('/(root)/(ahligizi)' as any);
+      router.replace('/(ahligizi)' as any);
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -68,7 +68,7 @@ export default function DashboardAhliGizi() {
             renderItem={({ item }) => (
               <TouchableOpacity
                 className="p-4 border-b border-gray-200"
-                onPress={() => router.push(`/(root)/chat/${item.chatId}` as any)}
+                onPress={() => router.push(`/chat/${item.chatId}` as any)}
               >
                 <View className="flex-row justify-between items-center">
                   <View>

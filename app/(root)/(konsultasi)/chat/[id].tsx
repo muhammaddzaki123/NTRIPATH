@@ -1,11 +1,11 @@
-import { useChat } from '../../../../contexts/ChatContext';
-import { useGlobalContext } from '../../../../lib/global-provider';
+import { useChat } from '@/contexts/ChatContext';
+import { useGlobalContext } from '@/lib/global-provider';
 import { FontAwesome } from '@expo/vector-icons';
 import { Link, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Message, Nutritionist } from '../../../../types/chat';
+import { Message, Nutritionist } from '@/types/chat';
 
 const ChatScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -94,7 +94,7 @@ const ChatScreen = () => {
     return (
       <SafeAreaView className="flex-1 bg-[#1CD6CE] items-center justify-center">
         <Text className="text-white text-lg">Ahli gizi tidak ditemukan</Text>
-        <Link href="./konsultasi" className="mt-4">
+        <Link href="/konsultasi" className="mt-4">
           <Text className="text-white underline">Kembali ke daftar ahli gizi</Text>
         </Link>
       </SafeAreaView>
@@ -105,7 +105,7 @@ const ChatScreen = () => {
     <SafeAreaView className="flex-1 bg-[#1CD6CE]">
       {/* Header */}
       <View className="flex-row items-center px-4 py-3">
-        <Link href="./konsultasi" className="mr-auto">
+        <Link href="/konsultasi" className="mr-auto">
           <View className="w-8 h-8 justify-center">
             <Text className="text-white text-2xl">←</Text>
           </View>
