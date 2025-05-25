@@ -10,7 +10,7 @@ import {
   Storage,
   Models
 } from "react-native-appwrite";
-import { Message, Nutritionist, ChatSubscriptionResponse } from "../types/chat";
+import { Message, Nutritionist, ChatSubscriptionResponse } from "@/types/chat";
 
 export const config = {
   platform: "com.poltekes.nutripath",
@@ -178,17 +178,31 @@ export async function getPropertyById({ id }: { id: string }) {
 // Chat related functions
 export async function sendMessage(message: Omit<Message, '$id' | 'sender' | 'time' | 'read'>) {
   try {
+    // Validasi data pesan
+    if (!message.text?.trim() || !message.chatId || !message.userId || !message.nutritionistId) {
+      throw new Error('Data pesan tidak lengkap');
+    }
+
+    const timestamp = new Date().toISOString();
+    
+    // Buat dokumen pesan baru
     const response = await databases.createDocument(
       config.databaseId!,
       config.chatMessagesCollectionId!,
       'unique()',
       {
         ...message,
+        text: message.text.trim(),
         sender: 'user',
-        time: new Date().toISOString(),
+        time: timestamp,
         read: false
       }
     );
+
+    if (!response) {
+      throw new Error('Gagal membuat dokumen pesan');
+    }
+
     return response;
   } catch (error) {
     console.error('Error sending message:', error);
@@ -254,20 +268,31 @@ export async function subscribeToChat(
   chatId: string, 
   callback: (message: Message) => void
 ) {
+  if (!chatId) {
+    throw new Error('Chat ID is required for subscription');
+  }
+
   try {
-    return client.subscribe(
+    // Subscribe ke event pembuatan dokumen baru di collection chat messages
+    const unsubscribe = await client.subscribe(
       `databases.${config.databaseId}.collections.${config.chatMessagesCollectionId}.documents`,
       (response: ChatSubscriptionResponse) => {
+        // Filter event untuk pembuatan dokumen baru
         if (response.events.includes('databases.*.collections.*.documents.*.create')) {
           const message = response.payload;
-          if (message.chatId === chatId) {
-            callback(message);
+          // Pastikan pesan untuk chat yang sedang aktif
+          if (message && message.chatId === chatId) {
+            console.log('New message received:', message);
+            callback(message as Message);
           }
         }
       }
     );
+
+    console.log('Chat subscription setup successful for chat:', chatId);
+    return unsubscribe;
   } catch (error) {
-    console.error('Error subscribing to chat:', error);
-    throw error;
+    console.error('Error setting up chat subscription:', error);
+    throw new Error(`Failed to setup chat subscription: ${error}`);
   }
 }

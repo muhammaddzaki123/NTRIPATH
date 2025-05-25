@@ -1,20 +1,31 @@
-import { useChat } from '@/contexts/ChatContext';
-import { Message, Nutritionist } from '@/types/chat';
 import { FontAwesome } from '@expo/vector-icons';
 import { Link, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useChat } from '../../../../contexts/ChatContext';
+import { useGlobalContext } from '../../../../lib/global-provider';
+import { Message, Nutritionist } from '../../../../types/chat';
 
 const ChatScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { nutritionists, messages, addMessage, markMessageAsRead, loading } = useChat();
+  const { nutritionists, messages, addMessage, markMessageAsRead, loading, setCurrentChat } = useChat();
+  const { user } = useGlobalContext();
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   
   const nutritionist = nutritionists.find((n: Nutritionist) => n.$id === id);
-  const chatMessages = messages[id] || [];
+  
+  useEffect(() => {
+    if (user && nutritionist) {
+      const chatIdComputed = `${user.$id}-${nutritionist.$id}`;
+      setCurrentChat(chatIdComputed);
+    }
+  }, [user, nutritionist]);
+
+  const chatId = user && nutritionist ? `${user.$id}-${nutritionist.$id}` : null;
+  const chatMessages = chatId ? (messages[chatId] || []) : [];
 
   useEffect(() => {
     // Scroll ke pesan terbaru ketika ada pesan baru
@@ -30,22 +41,43 @@ const ChatScreen = () => {
     });
   }, [chatMessages, markMessageAsRead]);
 
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const handleSend = async () => {
-    if (newMessage.trim() && nutritionist && !sending) {
-      try {
-        setSending(true);
-        await addMessage(nutritionist.$id, newMessage.trim());
-        setNewMessage('');
-        // Scroll to bottom after sending
-        setTimeout(() => {
-          scrollViewRef.current?.scrollToEnd({ animated: true });
-        }, 100);
-      } catch (error) {
-        console.error('Error sending message:', error);
-        // You might want to show an error toast here
-      } finally {
-        setSending(false);
-      }
+    if (!user) {
+      setErrorMessage('Anda harus login terlebih dahulu');
+      return;
+    }
+
+    if (!nutritionist) {
+      setErrorMessage('Ahli gizi tidak ditemukan');
+      return;
+    }
+
+    if (!newMessage.trim()) {
+      setErrorMessage('Pesan tidak boleh kosong');
+      return;
+    }
+
+    if (sending) {
+      return;
+    }
+
+    try {
+      setSending(true);
+      setErrorMessage(null);
+      const chatId = `${user.$id}-${nutritionist.$id}`;
+      await addMessage(nutritionist.$id, newMessage.trim());
+      setNewMessage('');
+      // Scroll to bottom after sending
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setErrorMessage('Gagal mengirim pesan. Silakan coba lagi.');
+    } finally {
+      setSending(false);
     }
   };
 
@@ -151,6 +183,13 @@ const ChatScreen = () => {
             ))
           )}
         </ScrollView>
+
+        {/* Error Message */}
+        {errorMessage && (
+          <View className="bg-red-100 px-4 py-2">
+            <Text className="text-red-600 text-center">{errorMessage}</Text>
+          </View>
+        )}
 
         {/* Message Input */}
         <View className="bg-white border-t border-gray-200 px-4 py-2">
