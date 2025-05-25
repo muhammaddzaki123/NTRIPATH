@@ -9,7 +9,9 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nutripath.app",
+      "icon": "./assets/images/logoawal.png"
     },
 
     "splash": {
@@ -17,7 +19,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#BFF8F8"
     },
-
+    
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logoawal.png",
