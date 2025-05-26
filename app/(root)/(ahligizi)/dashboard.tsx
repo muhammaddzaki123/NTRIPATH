@@ -28,7 +28,7 @@ export default function DashboardAhliGizi() {
   const handleLogout = async () => {
     try {
       await logoutNutritionist('current');
-      router.replace('/(ahligizi)' as any);
+      router.replace('/(root)/(ahligizi)' as any);
     } catch (error) {
       console.error('Logout error:', error);
     }

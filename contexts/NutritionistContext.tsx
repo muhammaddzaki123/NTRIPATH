@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { router } from 'expo-router';
-import { Nutritionist } from '../types/chat';
-import { getCurrentUser } from '../lib/appwrite';
+import { Nutritionist } from '@/types/chat';
+import { getCurrentUser } from '@/lib/appwrite';
 
 interface NutritionistContextType {
   nutritionist: Nutritionist | null;
