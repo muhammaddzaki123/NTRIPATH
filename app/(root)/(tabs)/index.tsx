@@ -127,7 +127,7 @@ const Home = () => {
 
       {/* Lihat lebih lanjut button */}
       <TouchableOpacity
-      onPress={() => router.push('./DeskIcon')}
+      onPress={() => router.push('/DeskIcon')}
       className="bg-white mx-4 my-3 p-3 rounded-xl flex-row justify-between items-center">
         <Text className="text-sm font-semibold">Lihat lebih lanjut</Text>
         <Image 
@@ -155,7 +155,7 @@ const Home = () => {
 
           <TouchableOpacity 
             className="items-center"
-            onPress={() => router.push('./KalkulatorGizi')}
+            onPress={() => router.push('/KalkulatorGizi')}
           >
             <View className="bg-[#dbe7e7] rounded-full w-16 h-16 items-center justify-center">
               <Image 
@@ -171,7 +171,7 @@ const Home = () => {
         <View className="items-center mb-4">
         <TouchableOpacity 
             className="items-center"
-            onPress={() => router.push('./artikel')}
+            onPress={() => router.push('/artikel')}
           >
             <View className="bg-[#dbe7e7] rounded-full w-16 h-16 items-center justify-center">
               <Image 

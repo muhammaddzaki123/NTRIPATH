@@ -1,73 +1,43 @@
+import * as Linking from "expo-linking";
+import { openAuthSessionAsync } from "expo-web-browser";
 import {
   Account,
   Avatars,
   Client,
   Databases,
+  OAuthProvider,
   Query,
-  Storage,
-  Models,
-  RealtimeResponseEvent,
-  ID
-} from "appwrite";
-import { 
-  Message, 
-  Nutritionist, 
-  ChatSession,
-  ConsultationStatus,
-  Notification
-} from "@/types/chat";
-
-type AppwriteMessage = Models.Document & {
-  chatId: string;
-  text: string;
-  sender: 'user' | 'nutritionist';
-  time: string;
-  read: boolean;
-  userId: string;
-  nutritionistId: string;
-};
-
-type AppwriteConsultationStatus = Models.Document & {
-  sessionId: string;
-  userId: string;
-  nutritionistId: string;
-  status: 'waiting' | 'in_progress' | 'completed';
-  currentQueue: number;
-  estimatedTime: number;
-  priority: number;
-  endTime?: string;
-};
+  Storage
+} from "react-native-appwrite";
+import { ChatSubscriptionResponse, Message, Nutritionist } from "@/types/chat";
 
 export const config = {
-  endpoint: process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT,
-  projectId: process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID,
-  databaseId: process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-  artikelCollectionId: process.env.NEXT_PUBLIC_APPWRITE_ARTIKEL_COLLECTION_ID,
-  recallCollectionId: process.env.NEXT_PUBLIC_APPWRITE_RECALL_COLLECTION_ID,
-  reviewsCollectionId: process.env.NEXT_PUBLIC_APPWRITE_REVIEWS_COLLECTION_ID,
-  propertiesCollectionId: process.env.NEXT_PUBLIC_APPWRITE_PROPERTIES_COLLECTION_ID,
-  bucketId: process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID,
+  platform: "com.poltekes.nutripath",
+  endpoint: process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT,
+  projectId: process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID,
+  databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID,
+  artikelCollectionId:process.env.EXPO_PUBLIC_APPWRITE_ARTIKEL_COLLECTION_ID,
+  recallCollectionId: process.env.EXPO_PUBLIC_APPWRITE_RECALL_COLLECTION_ID,
+  reviewsCollectionId: process.env.EXPO_PUBLIC_APPWRITE_REVIEWS_COLLECTION_ID,
+  propertiesCollectionId:process.env.EXPO_PUBLIC_APPWRITE_PROPERTIES_COLLECTION_ID,
+  bucketId: process.env.EXPO_PUBLIC_APPWRITE_BUCKET_ID,
   // Koleksi Profil Pengguna
-  usersProfileCollectionId: process.env.NEXT_PUBLIC_APPWRITE_USERS_PROFILE_COLLECTION_ID,
+  usersProfileCollectionId: process.env.EXPO_PUBLIC_APPWRITE_USERS_PROFILE_COLLECTION_ID,
 
   // nutritionist_profiles
-  ahligiziCollectionId: process.env.NEXT_PUBLIC_APPWRITE_AHLIGIZI_COLLECTION_ID,
+  ahligiziCollectionId: process.env.EXPO_PUBLIC_APPWRITE_AHLIGIZI_COLLECTION_ID,
 
   // chat_messages
-  chatMessagesCollectionId: process.env.NEXT_PUBLIC_APPWRITE_CHAT_MESSAGES_COLLECTION_ID,
+  chatMessagesCollectionId: process.env.EXPO_PUBLIC_APPWRITE_CHAT_MESSAGES_COLLECTION_ID,
   // nutritionist chat collections
-  nutritionistChatCollectionId: process.env.NEXT_PUBLIC_APPWRITE_NUTRITIONIST_CHAT_COLLECTION_ID,
-  
-  // New collections
-  chatSessionsCollectionId: process.env.NEXT_PUBLIC_APPWRITE_CHAT_SESSIONS_COLLECTION_ID,
-  consultationStatusCollectionId: process.env.NEXT_PUBLIC_APPWRITE_CONSULTATION_STATUS_COLLECTION_ID,
-  notificationsCollectionId: process.env.NEXT_PUBLIC_APPWRITE_NOTIFICATIONS_COLLECTION_ID,
+  nutritionistChatCollectionId: process.env.EXPO_PUBLIC_APPWRITE_NUTRITIONIST_CHAT_COLLECTION_ID,
 };
 
 export const client = new Client();
 client
   .setEndpoint(config.endpoint!)
-  .setProject(config.projectId!);
+  .setProject(config.projectId!)
+  .setPlatform(config.platform!);
 
 export const avatar = new Avatars(client);
 export const account = new Account(client);
@@ -76,26 +46,33 @@ export const storage = new Storage(client);
 
 export async function login() {
   try {
-    // Create OAuth2 session for Google
-    const session = await account.createOAuth2Session(
-      "google" as any,
-      process.env.NEXT_PUBLIC_OAUTH_SUCCESS_URL || 'http://localhost:8000/callback',
-      process.env.NEXT_PUBLIC_OAUTH_FAILURE_URL || 'http://localhost:8000/sign-in'
-    );
-    return session;
-  } catch (error) {
-    console.error('Google login error:', error);
-    throw error;
-  }
-}
+    const redirectUri = Linking.createURL("/");
 
-export async function loginWithEmailPassword(email: string, password: string) {
-  try {
-    const session = await account.createSession(email, password);
-    return session;
+    const response = await account.createOAuth2Token(
+      OAuthProvider.Google,
+      redirectUri
+    );
+    if (!response) throw new Error("Create OAuth2 token failed");
+
+    const browserResult = await openAuthSessionAsync(
+      response.toString(),
+      redirectUri
+    );
+    if (browserResult.type !== "success")
+      throw new Error("Create OAuth2 token failed");
+
+    const url = new URL(browserResult.url);
+    const secret = url.searchParams.get("secret")?.toString();
+    const userId = url.searchParams.get("userId")?.toString();
+    if (!secret || !userId) throw new Error("Create OAuth2 token failed");
+
+    const session = await account.createSession(userId, secret);
+    if (!session) throw new Error("Failed to create session");
+
+    return true;
   } catch (error) {
-    console.error('Email/password login error:', error);
-    throw error;
+    console.error(error);
+    return false;
   }
 }
 
@@ -109,12 +86,17 @@ export async function logout() {
   }
 }
 
-export async function loginAsNutritionist(email: string, password: string): Promise<{ 
-  user: Models.User<Models.Preferences>;
-  nutritionist: Models.Document;
-}> {
+export async function loginAsNutritionist(email: string, password: string) {
   try {
-    // Cek dulu apakah email terdaftar sebagai ahli gizi
+    // Login dengan email/password
+    const session = await account.createSession(email, password);
+    
+    if (!session) throw new Error('Gagal membuat sesi');
+
+    // Dapatkan data user
+    const user = await account.get();
+    
+    // Verifikasi apakah user adalah ahli gizi
     const nutritionist = await databases.listDocuments(
       config.databaseId!,
       config.ahligiziCollectionId!,
@@ -125,21 +107,12 @@ export async function loginAsNutritionist(email: string, password: string): Prom
     );
 
     if (nutritionist.documents.length === 0) {
-      throw new Error('Email tidak terdaftar sebagai ahli gizi');
-    }
-
-    // Login dengan email/password
-    const session = await account.createSession(email, password);
-    if (!session) throw new Error('Gagal membuat sesi');
-
-    // Dapatkan data user dengan role nutritionist
-    const user = await getCurrentUser();
-    if (!user || user.role !== 'nutritionist') {
+      // Jika user bukan ahli gizi, logout
       await account.deleteSession('current');
-      throw new Error('Gagal memverifikasi akun ahli gizi');
+      throw new Error('Akun ini bukan akun ahli gizi');
     }
 
-    // Update status online dan last seen
+    // Update status online
     await databases.updateDocument(
       config.databaseId!,
       config.ahligiziCollectionId!,
@@ -150,31 +123,12 @@ export async function loginAsNutritionist(email: string, password: string): Prom
       }
     );
 
-    // Buat atau update sesi khusus nutritionist
-    await databases.createDocument(
-      config.databaseId!,
-      config.nutritionistChatCollectionId!,
-      'unique()',
-      {
-        nutritionistId: nutritionist.documents[0].$id,
-        status: 'online',
-        lastActive: new Date().toISOString(),
-        sessionType: 'active'
-      }
-    );
-
     return {
       user,
       nutritionist: nutritionist.documents[0]
     };
   } catch (error) {
     console.error('Login error:', error);
-    // Pastikan session dihapus jika terjadi error
-    try {
-      await account.deleteSession('current');
-    } catch (e) {
-      console.error('Error cleaning up session:', e);
-    }
     throw error;
   }
 }
@@ -182,49 +136,18 @@ export async function loginAsNutritionist(email: string, password: string): Prom
 export async function getCurrentUser() {
   try {
     const result = await account.get();
-    if (!result.$id) return null;
+    if (result.$id) {
+      const userAvatar = avatar.getInitials(result.name);
 
-    const userAvatar = avatar.getInitials(result.name);
-    
-    // Check if user is a nutritionist
-    const nutritionist = await databases.listDocuments(
-      config.databaseId!,
-      config.ahligiziCollectionId!,
-      [Query.equal('email', result.email), Query.limit(1)]
-    );
-
-    if (nutritionist.documents.length > 0) {
-      const nutritionistData = nutritionist.documents[0];
       return {
         ...result,
-        avatar: nutritionistData.avatar || userAvatar.toString(),
-        role: 'nutritionist',
-        nutritionistProfile: {
-          specialization: nutritionistData.specialization,
-          type: nutritionistData.type,
-          experience: nutritionistData.experience,
-          rating: nutritionistData.rating,
-          status: nutritionistData.status,
-          available: nutritionistData.available
-        }
+        avatar: userAvatar.toString(),
       };
     }
 
-    // Regular user
-    const userProfile = await databases.listDocuments(
-      config.databaseId!,
-      config.usersProfileCollectionId!,
-      [Query.equal('email', result.email), Query.limit(1)]
-    );
-
-    return {
-      ...result,
-      avatar: userProfile.documents[0]?.avatar || userAvatar.toString(),
-      role: 'user'
-    };
-
+    return null;
   } catch (error) {
-    console.error('Error getting current user:', error);
+    console.log(error);
     return null;
   }
 }
@@ -358,18 +281,12 @@ export async function getNutritionists(): Promise<Nutritionist[]> {
     return response.documents.map(doc => ({
       ...doc,
       name: doc.name,
-      email: doc.email,
       status: doc.status as 'online' | 'offline',
       type: doc.type,
       specialization: doc.specialization,
-      description: doc.description,
-      lastSeen: doc.lastSeen,
-      experience: doc.experience,
-      rating: doc.rating,
-      price: doc.price,
-      available: doc.available,
-      avatar: doc.avatar
-    })) as unknown as Nutritionist[];
+      avatar: doc.avatar,
+      lastSeen: doc.lastSeen
+    })) as Nutritionist[];
   } catch (error) {
     console.error('Error getting nutritionists:', error);
     throw error;
@@ -431,155 +348,6 @@ export async function getChatMessages(chatId: string): Promise<Message[]> {
   }
 }
 
-// Chat Session Management
-export async function createChatSession(userId: string, nutritionistId: string): Promise<ChatSession> {
-  try {
-    const response = await databases.createDocument(
-      config.databaseId!,
-      config.chatSessionsCollectionId!,
-      'unique()',
-      {
-        userId,
-        nutritionistId,
-        status: 'active',
-        startTime: new Date().toISOString(),
-        lastMessageTime: new Date().toISOString(),
-        consultationType: 'general'
-      }
-    );
-    return response as unknown as ChatSession;
-  } catch (error) {
-    console.error('Error creating chat session:', error);
-    throw error;
-  }
-}
-
-export async function endChatSession(sessionId: string): Promise<ChatSession> {
-  try {
-    const response = await databases.updateDocument(
-      config.databaseId!,
-      config.chatSessionsCollectionId!,
-      sessionId,
-      {
-        status: 'ended',
-        endTime: new Date().toISOString()
-      }
-    );
-    return response as unknown as ChatSession;
-  } catch (error) {
-    console.error('Error ending chat session:', error);
-    throw error;
-  }
-}
-
-// Consultation Status Management
-export async function createConsultationStatus(
-  sessionId: string,
-  userId: string,
-  nutritionistId: string
-): Promise<ConsultationStatus> {
-  try {
-    const response = await databases.createDocument(
-      config.databaseId!,
-      config.consultationStatusCollectionId!,
-      'unique()',
-      {
-        sessionId,
-        userId,
-        nutritionistId,
-        status: 'waiting',
-        currentQueue: 0,
-        estimatedTime: 0,
-        priority: 1
-      }
-    );
-    return response as unknown as ConsultationStatus;
-  } catch (error) {
-    console.error('Error creating consultation status:', error);
-    throw error;
-  }
-}
-
-export async function updateConsultationStatus(
-  statusId: string,
-  updates: Partial<ConsultationStatus>
-): Promise<ConsultationStatus> {
-  try {
-    const response = await databases.updateDocument(
-      config.databaseId!,
-      config.consultationStatusCollectionId!,
-      statusId,
-      updates
-    );
-    return response as unknown as ConsultationStatus;
-  } catch (error) {
-    console.error('Error updating consultation status:', error);
-    throw error;
-  }
-}
-
-// Notification Management
-export async function createNotification(
-  userId: string,
-  type: 'message' | 'session_start' | 'session_end' | 'reminder',
-  title: string,
-  message: string,
-  metadata?: Record<string, any>
-): Promise<Notification> {
-  try {
-    const response = await databases.createDocument(
-      config.databaseId!,
-      config.notificationsCollectionId!,
-      'unique()',
-      {
-        userId,
-        type,
-        title,
-        message,
-        read: false,
-        createdAt: new Date().toISOString(),
-        metadata
-      }
-    );
-    return response as Notification;
-  } catch (error) {
-    console.error('Error creating notification:', error);
-    throw error;
-  }
-}
-
-export async function markNotificationAsRead(notificationId: string): Promise<Notification> {
-  try {
-    const response = await databases.updateDocument(
-      config.databaseId!,
-      config.notificationsCollectionId!,
-      notificationId,
-      { read: true }
-    );
-    return response as Notification;
-  } catch (error) {
-    console.error('Error marking notification as read:', error);
-    throw error;
-  }
-}
-
-export async function getNotifications(userId: string): Promise<Notification[]> {
-  try {
-    const response = await databases.listDocuments(
-      config.databaseId!,
-      config.notificationsCollectionId!,
-      [
-        Query.equal('userId', userId),
-        Query.orderDesc('createdAt')
-      ]
-    );
-    return response.documents as unknown as Notification[];
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
-    throw error;
-  }
-}
-
 export async function subscribeToChat(
   chatId: string, 
   callback: (message: Message) => void
@@ -592,9 +360,9 @@ export async function subscribeToChat(
     // Subscribe ke event pembuatan dokumen baru di collection chat messages
     const unsubscribe = await client.subscribe(
       `databases.${config.databaseId}.collections.${config.chatMessagesCollectionId}.documents`,
-      (response: RealtimeResponseEvent<AppwriteMessage>) => {
+      (response: ChatSubscriptionResponse) => {
         // Filter event untuk pembuatan dokumen baru
-        if (response.events?.includes('databases.*.collections.*.documents.*.create')) {
+        if (response.events.includes('databases.*.collections.*.documents.*.create')) {
           const message = response.payload;
           // Pastikan pesan untuk chat yang sedang aktif
           if (message && message.chatId === chatId) {
@@ -610,34 +378,5 @@ export async function subscribeToChat(
   } catch (error) {
     console.error('Error setting up chat subscription:', error);
     throw new Error(`Failed to setup chat subscription: ${error}`);
-  }
-}
-
-// Subscribe to consultation status changes
-export async function subscribeToConsultationStatus(
-  statusId: string,
-  callback: (status: ConsultationStatus) => void
-) {
-  if (!statusId) {
-    throw new Error('Status ID is required for subscription');
-  }
-
-  try {
-    const unsubscribe = await client.subscribe(
-      `databases.${config.databaseId}.collections.${config.consultationStatusCollectionId}.documents.${statusId}`,
-      (response: RealtimeResponseEvent<AppwriteConsultationStatus>) => {
-        if (response.events?.includes('databases.*.collections.*.documents.*.update')) {
-          console.log('Consultation status updated:', response.payload);
-          const status = response.payload;
-          callback(status as ConsultationStatus);
-        }
-      }
-    );
-
-    console.log('Consultation status subscription setup successful for:', statusId);
-    return unsubscribe;
-  } catch (error) {
-    console.error('Error setting up consultation status subscription:', error);
-    throw new Error(`Failed to setup consultation status subscription: ${error}`);
   }
 }
