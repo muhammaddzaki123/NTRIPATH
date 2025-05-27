@@ -1,3 +1,4 @@
+import { ChatSubscriptionResponse, Message, Nutritionist } from "@/types/chat";
 import * as Linking from "expo-linking";
 import { openAuthSessionAsync } from "expo-web-browser";
 import {
@@ -9,7 +10,6 @@ import {
   Query,
   Storage
 } from "react-native-appwrite";
-import { ChatSubscriptionResponse, Message, Nutritionist } from "@/types/chat";
 
 export const config = {
   platform: "com.poltekes.nutripath",
