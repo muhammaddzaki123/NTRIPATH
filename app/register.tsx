@@ -1,4 +1,3 @@
-import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -10,48 +9,68 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Picker } from "@react-native-picker/picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import icons from "@/constants/icons";
 import images from "@/constants/images";
-import { loginNutritionist, loginUser } from "@/lib/appwrite";
-import { useGlobalContext } from "@/lib/global-provider";
+import { account, databases, config } from "@/lib/appwrite";
 
-export default function SignIn() {
+export default function Register() {
   const router = useRouter();
-  const { refetch, loading, isLogged } = useGlobalContext();
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [userType, setUserType] = useState("user"); // "user" or "nutritionist"
 
-  React.useEffect(() => {
-    if (!loading && isLogged) {
-      router.replace("/");
-    }
-  }, [loading, isLogged]);
-
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert("Error", "Email dan password harus diisi");
+  const handleRegister = async () => {
+    if (!name || !email || !password) {
+      Alert.alert("Error", "Semua field harus diisi");
       return;
     }
-    try {
-      let result = false;
-      if (userType === "user") {
-        result = await loginUser(email, password);
-      } else if (userType === "nutritionist") {
-        const loginResult = await loginNutritionist(email, password);
-        result = !!loginResult;
-      }
 
-      if (result) {
-        refetch();
-      } else {
-        Alert.alert("Error", "Gagal login");
+    // Generate valid userId: max 36 chars, allowed chars a-z, A-Z, 0-9, period, hyphen, underscore, cannot start with special char
+    const generateUserId = (name: string) => {
+      let id = name.toLowerCase().replace(/[^a-z0-9._-]/g, "");
+      if (!id || id[0].match(/[^a-z0-9]/)) {
+        id = "user" + id;
       }
+      return id.substring(0, 36);
+    };
+
+    const userId = generateUserId(name);
+
+    try {
+      // Create account in Appwrite with userId
+      await account.create(userId, email, password, name);
+
+      // Create user document in appropriate collection
+      const collectionId =
+        userType === "nutritionist"
+          ? config.ahligiziCollectionId
+          : config.usersProfileCollectionId;
+
+      await databases.createDocument(
+        config.databaseId!,
+        collectionId!,
+        userId,
+        {
+          name,
+          email,
+          userType,
+          avatar: "", // default or generate avatar
+          status: userType === "nutritionist" ? "offline" : undefined,
+          lastSeen: new Date().toISOString(),
+          // password field removed to avoid invalid document structure error
+        }
+      );
+
+      Alert.alert("Sukses", "Registrasi berhasil, silakan login");
+      router.push("/sign-in");
     } catch (error) {
-      Alert.alert("Error", "Gagal login");
-      console.error("Login error:", error);
+      console.error("Registration error:", error);
+      Alert.alert("Error", "Gagal registrasi");
     }
   };
 
@@ -71,21 +90,18 @@ export default function SignIn() {
           {/* Welcome Text */}
           <View className="mb-12">
             <Text className="text-base text-center uppercase font-rubik text-gray-600">
-              Selamat datang Di Nutripath
-            </Text>
-
-            <Text className="text-3xl font-rubik-bold text-gray-900 text-center mt-2">
-              aplikasi konsultasi {"\n"}
-              <Text className="text-[#1CD6CE]">Your Ideal Home</Text>
-            </Text>
-
-            <Text className="text-lg font-rubik text-gray-600 text-center mt-4">
-              Gizi terjaga
+              Daftar Akun Baru
             </Text>
           </View>
 
-          {/* Login Form */}
+          {/* Registration Form */}
           <View className="space-y-4">
+            <TextInput
+              placeholder="Nama Lengkap"
+              value={name}
+              onChangeText={setName}
+              className="border border-gray-300 rounded-md px-4 py-3 text-base"
+            />
             <TextInput
               placeholder="Email"
               value={email}
@@ -111,11 +127,11 @@ export default function SignIn() {
               </Picker>
             </View>
             <TouchableOpacity
-              onPress={handleLogin}
+              onPress={handleRegister}
               className="bg-[#1CD6CE] rounded-full py-4 items-center"
             >
               <Text className="text-white text-lg font-rubik-medium">
-                Login
+                Daftar
               </Text>
             </TouchableOpacity>
           </View>
