@@ -1,7 +1,7 @@
-import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 type FoodWarning = {
   name: string;
@@ -23,27 +23,17 @@ export default function WarningScreen() {
   }
 
   return (
-    <View className="flex-1 bg-[#40E0D0]">
+  <SafeAreaView className='bg-primary-400 h-full p-4'>
+    <View className="flex-1 bg-primary-500 rounded-xl mt-5 mb-10" >
       {/* Custom Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 bg-[#40E0D0]">
-        <TouchableOpacity 
-          onPress={() => router.back()}
-          className="p-2"
-        >
-          <Image 
-            source={require('../../../assets/icons/back-arrow.png')}
-            className="w-6 h-6"
-            contentFit="contain"
-          />
+       {/* Header */}
+      <View className="flex-row items-center pt-5 border-b border-white pb-2 mb-4">
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color={"white"} className='ml-2' />
         </TouchableOpacity>
-        <Text className="flex-1 text-white text-xl font-bold ml-2">
-          Recall Asupan Makanan 24 Jam
-        </Text>
-        <TouchableOpacity 
-          onPress={() => router.replace('/')}
-          className="p-2"
-        >
-          <Text className="text-white text-base">Keluar</Text>
+        <Text className="text-white text-xl font-bold  ml-4 ">DIET PLAN</Text>
+        <TouchableOpacity onPress={() => router.back()} className="ml-auto">
+          <Text className="text-3xl text-white mr-4">×</Text>
         </TouchableOpacity>
       </View>
 
@@ -72,7 +62,7 @@ export default function WarningScreen() {
 
         <TouchableOpacity 
           className="bg-white rounded-full py-3 px-6 mt-6 mb-4 items-center"
-          onPress={() => router.push('./chat')}
+          onPress={() => router.push('/konsultasi')}
         >
           <Text className="text-[#40E0D0] font-semibold text-lg">
             YUK KONSUL
@@ -80,5 +70,6 @@ export default function WarningScreen() {
         </TouchableOpacity>
       </ScrollView>
     </View>
+  </SafeAreaView>
   );
 }

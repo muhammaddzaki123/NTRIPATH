@@ -33,8 +33,8 @@ const FoodInputRow = ({
   onChange: (data: FoodInput) => void;
   placeholder?: string;
 }) => (
-  <View className="mb-6">
-    <View className="flex-row items-center space-x-3">
+  <View className="mb-4">
+    <View className="flex-row items-center space-x-2">
       <TextInput
         className="w-32 bg-white rounded-xl p-3 text-base"
         value={value.name}
@@ -48,7 +48,7 @@ const FoodInputRow = ({
         placeholder="Jumlah"
         keyboardType="numeric"
       />
-      <View className="w-28 bg-white rounded-xl overflow-hidden ml-1">
+      <View className="w-35 bg-white rounded-xl overflow-hidden ml-1">
         <Picker
           selectedValue={value.unit}
           onValueChange={(text: string) => onChange({ ...value, unit: text })}
@@ -63,7 +63,6 @@ const FoodInputRow = ({
               key={unit} 
               label={unit} 
               value={unit}
-              style={{ fontSize: 16 }}
             />
           )}
         </Picker>
@@ -168,8 +167,8 @@ export default function FoodRecallScreen() {
   const currentMeal = meals[mealType];
 
   return (
-  <SafeAreaView className='bg-primary-400 h-full p-4 mt-3'>
-    <View className="flex-1 bg-primary-500 rounded-xl mt-5" >
+  <SafeAreaView className='bg-primary-400 h-full p-4'>
+    <View className="flex-1 bg-primary-500 rounded-xl mt-5 mb-10" >
       {/* Custom Header */}
        {/* Header */}
       <View className="flex-row items-center pt-5 border-b border-white pb-2 mb-4">
@@ -182,7 +181,7 @@ export default function FoodRecallScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1 px-6 py-6">
+      <ScrollView className="flex-1 px-6 pb-5 mb-5 " >
         <View className="space-y-8">
           <Text className="text-white text-2xl font-semibold">
             {mealType === 'breakfast' ? 'Makan Pagi' :
@@ -191,7 +190,7 @@ export default function FoodRecallScreen() {
 
           <View className="space-y-8">
             <View>
-              <Text className="text-white text-lg font-medium mb-4">Nasi/karbohidrat :</Text>
+              <Text className="text-white text-lg font-medium mb-2">Nasi/karbohidrat :</Text>
               <FoodInputRow
                 value={currentMeal.carbs}
                 onChange={(data) => updateFood(mealType, 'carbs', 0, data)}
@@ -199,7 +198,7 @@ export default function FoodRecallScreen() {
             </View>
 
             <View>
-              <Text className="text-white text-lg font-medium mb-4">Lainnya :</Text>
+              <Text className="text-white text-lg font-medium mb-2">Lainnya :</Text>
               {currentMeal.others.map((food: FoodInput, index: number) => (
                 <FoodInputRow
                   key={`other-${index}`}
@@ -210,7 +209,7 @@ export default function FoodRecallScreen() {
             </View>
 
             <View>
-              <Text className="text-white text-lg font-medium mb-4">Selingan :</Text>
+              <Text className="text-white text-lg font-medium mb-2">Selingan :</Text>
               {currentMeal.snacks.map((food: FoodInput, index: number) => (
                 <FoodInputRow
                   key={`snack-${index}`}
@@ -223,7 +222,7 @@ export default function FoodRecallScreen() {
         </View>
 
         <TouchableOpacity 
-          className="bg-white rounded-full py-4 px-6 mt-3  items-center shadow-lg"
+          className="bg-white rounded-full py-4 px-6 mb-5  items-center shadow-lg"
           onPress={handleNext}
         >
           <Text className="text-[#40E0D0] font-semibold text-lg">
