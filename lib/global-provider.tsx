@@ -15,6 +15,7 @@ interface User {
   name: string;
   email: string;
   avatar: string;
+  userType: 'user' | 'nutritionist';
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);

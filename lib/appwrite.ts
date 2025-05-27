@@ -1,15 +1,12 @@
-import { ChatSubscriptionResponse, Message, Nutritionist } from "../types/chat";
-import * as Linking from "expo-linking";
-import { openAuthSessionAsync } from "expo-web-browser";
 import {
   Account,
   Avatars,
   Client,
   Databases,
-  OAuthProvider,
   Query,
   Storage
 } from "react-native-appwrite";
+import { ChatSubscriptionResponse, Message, Nutritionist } from "../types/chat";
 
 export const config = {
   platform: "com.poltekes.nutripath",
@@ -249,4 +246,208 @@ export async function logoutNutritionist(nutritionistId: string) {
   }
 }
 
-// ... Rest of the code remains the same ...
+export async function getLatestProperties() {
+  try {
+    const result = await databases.listDocuments(
+      config.databaseId!,
+      config.propertiesCollectionId!,
+      [Query.orderAsc("$createdAt"), Query.limit(5)]
+    );
+
+    return result.documents;
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
+
+export async function getProperties({
+  filter,
+  query,
+  limit,
+}: {
+  filter: string;
+  query: string;
+  limit?: number;
+}) {
+  try {
+    const buildQuery = [Query.orderDesc("$createdAt")];
+
+    if (filter && filter !== "All")
+      buildQuery.push(Query.equal("type", filter));
+
+    if (query)
+      buildQuery.push(
+        Query.or([
+          Query.search("name", query),
+          Query.search("address", query),
+          Query.search("type", query),
+        ])
+      );
+
+    if (limit) buildQuery.push(Query.limit(limit));
+
+    const result = await databases.listDocuments(
+      config.databaseId!,
+      config.propertiesCollectionId!,
+      buildQuery
+    );
+
+    return result.documents;
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
+
+export async function getPropertyById({ id }: { id: string }) {
+  try {
+    const result = await databases.getDocument(
+      config.databaseId!,
+      config.propertiesCollectionId!,
+      id
+    );
+    return result;
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export const sendMessage = async (message: Omit<Message, '$id' | 'sender' | 'time' | 'read'>) => {
+  try {
+    if (!message.text?.trim() || !message.chatId || !message.userId || !message.nutritionistId) {
+      throw new Error('Data pesan tidak lengkap');
+    }
+
+    const timestamp = new Date().toISOString();
+    
+    const response = await databases.createDocument(
+      config.databaseId!,
+      config.chatMessagesCollectionId!,
+      'unique()',
+      {
+        ...message,
+        text: message.text.trim(),
+        sender: 'user',
+        time: timestamp,
+        read: false
+      }
+    );
+
+    if (!response) {
+      throw new Error('Gagal membuat dokumen pesan');
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Error sending message:', error);
+    throw error;
+  }
+}
+
+export const markMessageAsRead = async (messageId: string) => {
+  try {
+    const response = await databases.updateDocument(
+      config.databaseId!,
+      config.chatMessagesCollectionId!,
+      messageId,
+      { read: true }
+    );
+    return response;
+  } catch (error) {
+    console.error('Error marking message as read:', error);
+    throw error;
+  }
+}
+
+export const getNutritionists = async (): Promise<Nutritionist[]> => {
+  try {
+    console.log("Fetching nutritionists list...");
+    const response = await databases.listDocuments(
+      config.databaseId!,
+      config.ahligiziCollectionId!,
+      [Query.orderAsc('name')]
+    );
+    
+    console.log("Found nutritionists:", response.documents.length);
+    
+    const nutritionists = response.documents.map(doc => ({
+      ...doc,
+      name: doc.name,
+      status: doc.status || 'offline',
+      type: doc.type,
+      specialization: doc.specialization,
+      avatar: doc.avatar || avatar.getInitials(doc.name).toString(),
+      lastSeen: doc.lastSeen
+    })) as Nutritionist[];
+
+    console.log("Processed nutritionists data:", nutritionists);
+    return nutritionists;
+  } catch (error) {
+    console.error('Error getting nutritionists:', error);
+    throw error;
+  }
+}
+
+export const getChatMessages = async (chatId: string): Promise<Message[]> => {
+  try {
+    const response = await databases.listDocuments(
+      config.databaseId!,
+      config.chatMessagesCollectionId!,
+      [
+        Query.equal('chatId', chatId),
+        Query.orderAsc('time')
+      ]
+    );
+    
+    return response.documents.map(doc => ({
+      $id: doc.$id,
+      $createdAt: doc.$createdAt,
+      $updatedAt: doc.$updatedAt,
+      $permissions: doc.$permissions,
+      $collectionId: doc.$collectionId,
+      $databaseId: doc.$databaseId,
+      chatId: doc.chatId,
+      userId: doc.userId,
+      nutritionistId: doc.nutritionistId,
+      text: doc.text,
+      sender: doc.sender,
+      time: doc.time,
+      read: doc.read
+    })) as Message[];
+  } catch (error) {
+    console.error('Error getting chat messages:', error);
+    throw error;
+  }
+}
+
+export async function subscribeToChat(
+  chatId: string, 
+  callback: (message: Message) => void
+) {
+  if (!chatId) {
+    throw new Error('Chat ID is required for subscription');
+  }
+
+  try {
+    const unsubscribe = await client.subscribe(
+      `databases.${config.databaseId}.collections.${config.chatMessagesCollectionId}.documents`,
+      (response: ChatSubscriptionResponse) => {
+        if (response.events.includes('databases.*.collections.*.documents.*.create')) {
+          const message = response.payload;
+          if (message && message.chatId === chatId) {
+            console.log('New message received:', message);
+            callback(message as Message);
+          }
+        }
+      }
+    );
+
+    console.log('Chat subscription setup successful for chat:', chatId);
+    return unsubscribe;
+  } catch (error) {
+    console.error('Error setting up chat subscription:', error);
+    throw new Error(`Failed to setup chat subscription: ${error}`);
+  }
+}
