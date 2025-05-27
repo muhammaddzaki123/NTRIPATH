@@ -12,7 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import icons from "@/constants/icons";
 import images from "@/constants/images";
-import { login } from "@/lib/appwrite";
+import { loginUser } from "@/lib/appwrite";
 import { useGlobalContext } from "@/lib/global-provider";
 
 export default function SignIn() {
@@ -27,7 +27,7 @@ export default function SignIn() {
 
   const handleLogin = async () => {
     try {
-      const result = await login();
+      const result = await loginUser();
       if (result) {
         refetch();
       } else {

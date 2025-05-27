@@ -145,42 +145,45 @@ const ChatScreen = () => {
               </Text>
             </View>
           ) : (
-            chatMessages.map((message: Message, index: number) => (
-              <View 
-                key={message.$id || index}
-                className={`flex-row ${message.sender === 'user' ? 'justify-end' : 'justify-start'} mb-3`}
-              >
+            chatMessages.map((message: Message, index: number) => {
+              const key = message.$id ? message.$id : `${message.chatId}-${message.time}-${index}`;
+              return (
                 <View 
-                  className={`rounded-2xl px-4 py-2 max-w-[80%] ${
-                    message.sender === 'user' 
-                      ? 'bg-[#1CD6CE]' 
-                      : 'bg-gray-100'
-                  }`}
+                  key={key}
+                  className={`flex-row ${message.sender === 'user' ? 'justify-end' : 'justify-start'} mb-3`}
                 >
-                  <Text 
-                    className={`${
+                  <View 
+                    className={`rounded-2xl px-4 py-2 max-w-[80%] ${
                       message.sender === 'user' 
-                        ? 'text-white' 
-                        : 'text-gray-900'
+                        ? 'bg-[#1CD6CE]' 
+                        : 'bg-gray-100'
                     }`}
                   >
-                    {message.text}
-                  </Text>
-                  <Text 
-                    className={`text-xs mt-1 ${
-                      message.sender === 'user'
-                        ? 'text-white/70'
-                        : 'text-gray-500'
-                    }`}
-                  >
-                    {new Date(message.time).toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
-                  </Text>
+                    <Text 
+                      className={`${
+                        message.sender === 'user' 
+                          ? 'text-white' 
+                          : 'text-gray-900'
+                      }`}
+                    >
+                      {message.text}
+                    </Text>
+                    <Text 
+                      className={`text-xs mt-1 ${
+                        message.sender === 'user'
+                          ? 'text-white/70'
+                          : 'text-gray-500'
+                      }`}
+                    >
+                      {new Date(message.time).toLocaleTimeString([], { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            ))
+              );
+            })
           )}
         </ScrollView>
 

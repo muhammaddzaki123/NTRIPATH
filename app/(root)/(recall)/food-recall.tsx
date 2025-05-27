@@ -1,10 +1,10 @@
 import { foodRestrictions, urtOptions } from '@/constants/food-restrictions';
+import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
-import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import { useState } from 'react';
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 type FoodInput = {
   name: string;
@@ -42,19 +42,22 @@ const FoodInputRow = ({
         placeholder={placeholder}
       />
       <TextInput
-        className="w-20 bg-white rounded-xl p-3 text-base"
+        className="w-20 bg-white rounded-xl p-3 text-base ml-1"
         value={value.amount}
         onChangeText={(text: string) => onChange({ ...value, amount: text })}
         placeholder="Jumlah"
         keyboardType="numeric"
       />
-      <View className="flex-1 bg-white rounded-xl overflow-hidden">
+      <View className="w-28 bg-white rounded-xl overflow-hidden ml-1">
         <Picker
           selectedValue={value.unit}
           onValueChange={(text: string) => onChange({ ...value, unit: text })}
-          style={{ height: 48, backgroundColor: 'white' }}
+          style={{ height: 48,
+            paddingHorizontal: 10,
+            minWidth: 100,
+             backgroundColor: 'white' }}
         >
-          <Picker.Item label="Pilih URT" value="" />
+          <Picker.Item label="URT" value="" />
           {urtOptions.map((unit: string) => 
             <Picker.Item 
               key={unit} 
@@ -165,27 +168,17 @@ export default function FoodRecallScreen() {
   const currentMeal = meals[mealType];
 
   return (
-    <View className="flex-1 bg-[#40E0D0]">
+  <SafeAreaView className='bg-primary-400 h-full p-4 mt-3'>
+    <View className="flex-1 bg-primary-500 rounded-xl mt-5" >
       {/* Custom Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 bg-[#40E0D0]">
-        <TouchableOpacity 
-          onPress={handleBack}
-          className="p-2"
-        >
-          <Image 
-            source={require('../../../assets/icons/back-arrow.png')}
-            className="w-6 h-6"
-            contentFit="contain"
-          />
+       {/* Header */}
+      <View className="flex-row items-center pt-5 border-b border-white pb-2 mb-4">
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color={"white"} className='ml-2' />
         </TouchableOpacity>
-        <Text className="flex-1 text-white text-xl font-bold ml-2">
-          Recall Asupan Makanan 24 Jam
-        </Text>
-        <TouchableOpacity 
-          onPress={() => router.replace('/')}
-          className="p-2"
-        >
-          <Text className="text-white text-base">Keluar</Text>
+        <Text className="text-white text-xl font-bold  ml-4 ">DIET PLAN</Text>
+        <TouchableOpacity onPress={() => router.back()} className="ml-auto">
+          <Text className="text-3xl text-white mr-4">×</Text>
         </TouchableOpacity>
       </View>
 
@@ -230,7 +223,7 @@ export default function FoodRecallScreen() {
         </View>
 
         <TouchableOpacity 
-          className="bg-white rounded-full py-4 px-6 mt-8 mb-6 items-center shadow-lg"
+          className="bg-white rounded-full py-4 px-6 mt-3  items-center shadow-lg"
           onPress={handleNext}
         >
           <Text className="text-[#40E0D0] font-semibold text-lg">
@@ -239,5 +232,6 @@ export default function FoodRecallScreen() {
         </TouchableOpacity>
       </ScrollView>
     </View>
+    </SafeAreaView>
   );
 }

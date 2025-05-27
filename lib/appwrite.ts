@@ -44,7 +44,11 @@ export const account = new Account(client);
 export const databases = new Databases(client);
 export const storage = new Storage(client);
 
-export async function login() {
+/**
+ * Login untuk user biasa menggunakan Google OAuth2
+ * Data user disimpan di koleksi usersProfileCollectionId
+ */
+export async function loginUser() {
   try {
     const redirectUri = Linking.createURL("/");
 
@@ -63,10 +67,19 @@ export async function login() {
 
     const url = new URL(browserResult.url);
     const secret = url.searchParams.get("secret")?.toString();
-    const userId = url.searchParams.get("userId")?.toString();
-    if (!secret || !userId) throw new Error("Create OAuth2 token failed");
+    let userId = url.searchParams.get("userId")?.toString();
 
-    const session = await account.createSession(userId, secret);
+    // Validate userId format: max 36 chars, allowed chars a-z, A-Z, 0-9, period, hyphen, underscore
+    const userIdRegex = /^[a-zA-Z0-9._-]{1,36}$/;
+    if (!secret || !userId || !userIdRegex.test(userId)) {
+      // Try alternative param keys if available
+      userId = url.searchParams.get("user_id")?.toString();
+      if (!userId || !userIdRegex.test(userId)) {
+        throw new Error("Invalid userId parameter in OAuth response");
+      }
+    }
+
+    const session = await account.createSession(userId!, secret!);
     if (!session) throw new Error("Failed to create session");
 
     return true;
@@ -75,6 +88,66 @@ export async function login() {
     return false;
   }
 }
+
+/**
+ * Login untuk ahli gizi menggunakan email dan password
+ * Data ahli gizi disimpan di koleksi ahligiziCollectionId
+ */
+export async function loginNutritionist(email: string, password: string) {
+  try {
+    // Login dengan email/password
+    const session = await account.createSession(email, password);
+    
+    if (!session) throw new Error('Gagal membuat sesi');
+
+    // Dapatkan data user
+    const user = await account.get();
+    
+    // Verifikasi apakah user adalah ahli gizi
+    const nutritionist = await databases.listDocuments(
+      config.databaseId!,
+      config.ahligiziCollectionId!,
+      [
+        Query.equal('email', email),
+        Query.limit(1)
+      ]
+    );
+
+    if (nutritionist.documents.length === 0) {
+      // Jika user bukan ahli gizi, logout
+      await account.deleteSession('current');
+      throw new Error('Akun ini bukan akun ahli gizi');
+    }
+
+    // Update status online
+    await databases.updateDocument(
+      config.databaseId!,
+      config.ahligiziCollectionId!,
+      nutritionist.documents[0].$id,
+      {
+        status: 'online',
+        lastSeen: new Date().toISOString()
+      }
+    );
+
+    return {
+      user,
+      nutritionist: nutritionist.documents[0]
+    };
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Struktur database:
+ * - Koleksi usersProfileCollectionId: menyimpan data user biasa
+ *   - Field: $id (userId), name, email, avatar, userType = 'user'
+ * - Koleksi ahligiziCollectionId: menyimpan data ahli gizi
+ *   - Field: $id (nutritionistId), name, email, password (hashed), specialization, status, avatar, userType = 'nutritionist'
+ * - Data chat dan pesan mengacu pada userId dan nutritionistId sesuai tipe user
+ */
 
 export async function logout() {
   try {
