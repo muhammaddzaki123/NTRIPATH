@@ -2,18 +2,31 @@ import React, { createContext, ReactNode, useContext } from "react";
 import { getCurrentUser } from "./appwrite";
 import { useAppwrite } from "./useAppwrite";
 
+import { Models } from 'appwrite';
+
+interface NutritionistProfile {
+  specialization: string;
+  type: string;
+  experience: number;
+  rating: number;
+  status: 'online' | 'offline';
+  available: boolean;
+}
+
+interface User extends Models.Document {
+  name: string;
+  email: string;
+  avatar: string;
+  role: 'user' | 'nutritionist';
+  nutritionistProfile?: NutritionistProfile;
+}
+
 interface GlobalContextType {
   isLogged: boolean;
   user: User | null;
   loading: boolean;
   refetch: () => void;
-}
-
-interface User {
-  $id: string;
-  name: string;
-  email: string;
-  avatar: string;
+  isNutritionist: boolean;
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
@@ -24,14 +37,17 @@ interface GlobalProviderProps {
 
 export const GlobalProvider = ({ children }: GlobalProviderProps) => {
   const {
-    data: user,
+    data: userData,
     loading,
     refetch,
   } = useAppwrite({
     fn: getCurrentUser,
   });
 
+  const user = userData as User | null;
+
   const isLogged = !!user;
+  const isNutritionist = user?.role === 'nutritionist';
 
   return (
     <GlobalContext.Provider
@@ -40,6 +56,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
         user,
         loading,
         refetch,
+        isNutritionist
       }}
     >
       {children}

@@ -1,34 +1,46 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useGlobalContext } from '../lib/global-provider';
-import { Message, Nutritionist, ChatSubscriptionResponse } from '../types/chat';
-import { config } from '../lib/appwrite';
+import React, { createContext, useContext, useState, useEffect, ReactNode, FC } from 'react';
+import { Models } from 'appwrite';
+import { useGlobalContext } from '@/lib/global-provider';
+import { 
+  Message, 
+  Nutritionist, 
+  ChatSession,
+  ConsultationStatus,
+  Notification,
+  ChatContextType,
+  isMessage,
+  isValidSession,
+  isValidStatus
+} from '@/types/chat';
+import { config } from '@/lib/appwrite';
 import { 
   sendMessage as sendMessageAPI, 
   getNutritionists as getNutritionistsAPI,
   getChatMessages as getChatMessagesAPI,
   markMessageAsRead as markMessageAsReadAPI,
-  subscribeToChat as subscribeToChatAPI
-} from '../lib/appwrite';
-
-interface ChatContextType {
-  messages: { [key: string]: Message[] };
-  addMessage: (nutritionistId: string, text: string) => Promise<void>;
-  nutritionists: Nutritionist[];
-  currentChat: string | null;
-  setCurrentChat: (chatId: string | null) => void;
-  markMessageAsRead: (messageId: string) => Promise<void>;
-  unreadMessages: { [key: string]: number };
-  loading: boolean;
-}
+  subscribeToChat as subscribeToChatAPI,
+  createChatSession,
+  endChatSession,
+  createConsultationStatus,
+  updateConsultationStatus,
+  subscribeToConsultationStatus,
+  createNotification,
+  markNotificationAsRead,
+  getNotifications,
+  databases
+} from '@/lib/appwrite';
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
-export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
+export const ChatProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [messages, setMessages] = useState<{ [key: string]: Message[] }>({});
   const [nutritionists, setNutritionists] = useState<Nutritionist[]>([]);
   const [currentChat, setCurrentChat] = useState<string | null>(null);
   const [unreadMessages, setUnreadMessages] = useState<{ [key: string]: number }>({});
   const [loading, setLoading] = useState(true);
+  const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
+  const [consultationStatus, setConsultationStatus] = useState<ConsultationStatus | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const { user } = useGlobalContext();
 
   // Fetch nutritionists
@@ -50,137 +62,100 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     fetchNutritionists();
   }, [user]);
 
-  // Subscribe to real-time messages for current chat
+  // Fetch notifications
   useEffect(() => {
-    if (!user || !currentChat) return;
-
-    let unsubscribe: (() => void) | undefined;
-    let isSubscribed = true; // Flag untuk mencegah update state setelah unmount
-    
-    const setupSubscription = async () => {
-      try {
-        console.log('Setting up subscription for chat:', currentChat);
-        
-        unsubscribe = await subscribeToChatAPI(currentChat, (newMessage: Message) => {
-          if (!isSubscribed) return; // Jangan update state jika component sudah unmount
-
-          console.log('Received new message:', newMessage);
-          
-          setMessages(prev => {
-            const chatMessages = prev[newMessage.chatId] || [];
-            // Cek apakah pesan sudah ada untuk menghindari duplikasi
-            const messageExists = chatMessages.some(msg => msg.$id === newMessage.$id);
-            if (messageExists) return prev;
-            
-            return {
-              ...prev,
-              [newMessage.chatId]: [...chatMessages, newMessage]
-            };
-          });
-
-          // Update unread messages count untuk pesan dari ahli gizi
-          if (newMessage.sender === 'nutritionist' && currentChat !== newMessage.chatId) {
-            setUnreadMessages(prev => ({
-              ...prev,
-              [newMessage.chatId]: (prev[newMessage.chatId] || 0) + 1
-            }));
-          }
-        });
-
-        console.log('Chat subscription setup successful');
-      } catch (error) {
-        console.error('Error setting up chat subscription:', error);
-        // Tambahkan retry logic jika diperlukan
-      }
-    };
-
-    setupSubscription();
-
-    return () => {
-      isSubscribed = false; // Set flag false saat cleanup
-      if (unsubscribe) {
-        console.log('Cleaning up chat subscription');
-        unsubscribe();
-      }
-    };
-  }, [user, currentChat]);
-
-  // Fetch existing messages
-  useEffect(() => {
-    const fetchMessages = async () => {
-      if (!user || !currentChat) return;
+    const fetchUserNotifications = async () => {
+      if (!user) return;
       
       try {
-        setLoading(true);
-        const chatMessages = await getChatMessagesAPI(currentChat);
-        
-        setMessages(prev => ({
-          ...prev,
-          [currentChat]: chatMessages as Message[]
-        }));
-
-        // Reset unread count for current chat
-        setUnreadMessages(prev => ({
-          ...prev,
-          [currentChat]: 0
-        }));
+        const fetchedNotifications = await getNotifications(user.$id);
+        setNotifications(fetchedNotifications);
       } catch (error) {
-        console.error('Error fetching messages:', error);
-      } finally {
-        setLoading(false);
+        console.error('Error fetching notifications:', error);
       }
     };
 
-    fetchMessages();
-  }, [user, currentChat]);
+    fetchUserNotifications();
+  }, [user]);
 
   const addMessage = async (nutritionistId: string, text: string) => {
     if (!user) return;
 
-    const chatId = `${user.$id}-${nutritionistId}`;
+    const chatId = user.role === 'nutritionist' 
+      ? `${nutritionistId}-${user.$id}`
+      : `${user.$id}-${nutritionistId}`;
+
     const timestamp = new Date().toISOString();
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
-    const tempId = `temp-${Date.now()}`;
-    // Tambahkan pesan ke state lokal untuk UX yang lebih responsif
-    const tempMessage: Partial<Message> = {
+    const tempMessage: Message = {
       $id: tempId,
+      $collectionId: config.chatMessagesCollectionId!,
+      $databaseId: config.databaseId!,
+      $createdAt: timestamp,
+      $updatedAt: timestamp,
+      $permissions: [],
       chatId,
       text,
-      sender: 'user',
+      sender: user.role === 'nutritionist' ? 'nutritionist' : 'user',
       time: timestamp,
       read: false,
-      userId: user.$id,
-      nutritionistId
+      userId: user.role === 'nutritionist' ? nutritionistId : user.$id,
+      nutritionistId: user.role === 'nutritionist' ? user.$id : nutritionistId
     };
 
-    // Update state dengan pesan sementara
-    setMessages(prev => ({
+    setMessages((prev: { [key: string]: Message[] }) => ({
       ...prev,
-      [chatId]: [...(prev[chatId] || []), tempMessage as Message]
+      [chatId]: [...(prev[chatId] || []), tempMessage]
     }));
 
     try {
-      // Kirim pesan ke server
       const sentMessage = await sendMessageAPI({
-        userId: user.$id,
-        nutritionistId,
+        userId: tempMessage.userId,
+        nutritionistId: tempMessage.nutritionistId,
         text,
         chatId
       });
 
-      // Update pesan temporary dengan response dari server
-      setMessages(prev => ({
+      const message = {
+        ...sentMessage,
+        $collectionId: config.chatMessagesCollectionId!,
+        $databaseId: config.databaseId!,
+        $permissions: [],
+        chatId,
+        text,
+        sender: user.role === 'nutritionist' ? 'nutritionist' : 'user',
+        time: new Date().toISOString(),
+        read: false,
+        userId: user.role === 'nutritionist' ? nutritionistId : user.$id,
+        nutritionistId: user.role === 'nutritionist' ? user.$id : nutritionistId
+      } as Message;
+
+      if (!isMessage(message)) {
+        throw new Error('Invalid message format');
+      }
+
+      setMessages((prev: { [key: string]: Message[] }) => ({
         ...prev,
-        [chatId]: prev[chatId].map(msg => 
-          msg.$id === tempId ? sentMessage as Message : msg
+        [chatId]: prev[chatId].map((msg: Message) => 
+          msg.$id === tempId ? message : msg
         )
       }));
+
+      if (user.role === 'nutritionist') {
+        await createNotification(
+          tempMessage.userId,
+          'message',
+          'Pesan Baru dari Ahli Gizi',
+          `${user.name} mengirim pesan baru untuk Anda`,
+          { chatId }
+        );
+      }
     } catch (error) {
       console.error('Error sending message:', error);
-      // Hapus pesan temporary jika pengiriman gagal
-      setMessages(prev => ({
+      setMessages((prev: { [key: string]: Message[] }) => ({
         ...prev,
-        [chatId]: prev[chatId].filter(msg => msg.$id !== tempId)
+        [chatId]: prev[chatId].filter((msg: Message) => msg.$id !== tempId)
       }));
       throw error;
     }
@@ -190,18 +165,131 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       await markMessageAsReadAPI(messageId);
       
-      // Update local state
-      setMessages(prev => {
+      setMessages((prev: { [key: string]: Message[] }) => {
         const updatedMessages = { ...prev };
-        Object.keys(updatedMessages).forEach(chatId => {
-          updatedMessages[chatId] = updatedMessages[chatId].map(msg => 
-            msg.$id === messageId ? { ...msg, read: true } : msg
-          );
+        Object.keys(updatedMessages).forEach((chatId: string) => {
+          updatedMessages[chatId] = updatedMessages[chatId].map((msg: Message) => {
+            if (msg.$id === messageId && isMessage(msg)) {
+              return {
+                ...msg,
+                read: true,
+                $updatedAt: new Date().toISOString()
+              };
+            }
+            return msg;
+          });
         });
         return updatedMessages;
       });
     } catch (error) {
       console.error('Error marking message as read:', error);
+    }
+  };
+
+  const handleNotificationRead = async (notificationId: string) => {
+    try {
+      await markNotificationAsRead(notificationId);
+      setNotifications(prev => 
+        prev.map(notif => 
+          notif.$id === notificationId ? {
+            ...notif,
+            read: true,
+            $updatedAt: new Date().toISOString()
+          } as Notification : notif
+        )
+      );
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const createSession = async (nutritionistId: string): Promise<void> => {
+    if (!user) return;
+
+    try {
+      const session = await createChatSession(user.$id, nutritionistId);
+      const status = await createConsultationStatus(
+        session.$id,
+        user.$id,
+        nutritionistId
+      );
+
+      if (isValidSession(session) && isValidStatus(status)) {
+        setCurrentSession(session);
+        setConsultationStatus(status);
+
+        await Promise.all([
+          createNotification(
+            user.$id,
+            'session_start',
+            'Konsultasi Dimulai',
+            'Sesi konsultasi Anda telah dimulai',
+            { sessionId: session.$id }
+          ),
+          createNotification(
+            nutritionistId,
+            'session_start',
+            'Konsultasi Baru',
+            'Anda memiliki sesi konsultasi baru',
+            { sessionId: session.$id }
+          )
+        ]);
+      } else {
+        throw new Error('Invalid session or status data received');
+      }
+    } catch (error) {
+      console.error('Error creating chat session:', error);
+      throw error;
+    }
+  };
+
+  const endSession = async (sessionId: string) => {
+    if (!user) return;
+
+    try {
+      const endedSession = await endChatSession(sessionId);
+      
+      if (consultationStatus) {
+        await updateConsultationStatus(consultationStatus.$id, {
+          status: 'completed',
+          endTime: new Date().toISOString()
+        });
+      }
+
+      await Promise.all([
+        createNotification(
+          user.role === 'nutritionist' ? consultationStatus?.userId! : user.$id,
+          'session_end',
+          'Konsultasi Selesai',
+          'Sesi konsultasi Anda telah selesai',
+          { sessionId }
+        ),
+        createNotification(
+          user.role === 'nutritionist' ? user.$id : consultationStatus?.nutritionistId!,
+          'session_end',
+          'Konsultasi Selesai',
+          'Sesi konsultasi telah diakhiri',
+          { sessionId }
+        )
+      ]);
+
+      setCurrentSession(null);
+      setConsultationStatus(null);
+
+      if (user.role === 'nutritionist') {
+        await databases.updateDocument(
+          config.databaseId!,
+          config.ahligiziCollectionId!,
+          user.$id,
+          {
+            available: true,
+            lastSeen: new Date().toISOString()
+          }
+        );
+      }
+    } catch (error) {
+      console.error('Error ending chat session:', error);
+      throw error;
     }
   };
 
@@ -215,7 +303,13 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
         setCurrentChat,
         markMessageAsRead,
         unreadMessages,
-        loading
+        loading,
+        currentSession,
+        consultationStatus,
+        createSession,
+        endSession,
+        notifications,
+        markNotificationAsRead: handleNotificationRead
       }}
     >
       {children}

@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   ScrollView,
@@ -10,10 +11,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import icons from "../constants/icons";
-import images from "../constants/images";
-import { login } from "../lib/appwrite";
-import { useGlobalContext } from "../lib/global-provider";
+import icons from "@/constants/icons";
+import images from "@/constants/images";
+import { login } from "@/lib/appwrite";
+import { useGlobalContext } from "@/lib/global-provider";
 
 export default function SignIn() {
   const router = useRouter();
@@ -27,21 +28,39 @@ export default function SignIn() {
 
   const handleLogin = async () => {
     try {
+      setLoading(true);
       const result = await login();
       if (result) {
         refetch();
       } else {
-        Alert.alert("Error", "Gagal login");
+        Alert.alert(
+          "Login Gagal", 
+          "Gagal melakukan login dengan Google. Silakan coba lagi."
+        );
       }
-    } catch (error) {
-      Alert.alert("Error", "Gagal login");
+    } catch (error: any) {
+      Alert.alert(
+        "Error", 
+        error.message || "Terjadi kesalahan saat login. Silakan coba lagi."
+      );
       console.error('Login error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleAhliGiziLogin = () => {
     router.push('/LoginAhliGizi');
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 bg-white justify-center items-center">
+        <ActivityIndicator size="large" color="#1CD6CE" />
+        <Text className="mt-4 text-gray-600">Memproses login...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-white">
