@@ -1,78 +1,47 @@
 import { useChat } from '@/contexts/ChatContext';
 import { useGlobalContext } from '@/lib/global-provider';
-import { FontAwesome } from '@expo/vector-icons';
-import { Link, useLocalSearchParams, router } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Message, Nutritionist } from '@/types/chat';
+import { FontAwesome } from '@expo/vector-icons';
+import { Link, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ChatScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { 
-    nutritionists, 
-    messages, 
-    addMessage, 
-    markMessageAsRead, 
-    loading, 
-    setCurrentChat,
-    currentSession,
-    consultationStatus,
-    createSession,
-    endSession
-  } = useChat();
-  const { user, isNutritionist } = useGlobalContext();
+  const { nutritionists, messages, addMessage, markMessageAsRead, loading, setCurrentChat } = useChat();
+  const { user } = useGlobalContext();
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
-  const [sessionLoading, setSessionLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   
   const nutritionist = nutritionists.find((n: Nutritionist) => n.$id === id);
   
   useEffect(() => {
-    const initializeChat = async () => {
-      if (!user || !nutritionist) return;
-
-      // Compute chatId based on role
-      const chatIdComputed = isNutritionist
-        ? `${id}-${user.$id}`      // ahli gizi chatting with user
-        : `${user.$id}-${id}`;     // user chatting with ahli gizi
-
+    if (user && nutritionist) {
+      const chatIdComputed = `${user.$id}-${nutritionist.$id}`;
       setCurrentChat(chatIdComputed);
-      
-      if (!currentSession && !isNutritionist) {
-        try {
-          setSessionLoading(true);
-          await createSession(nutritionist.$id);
-        } catch (error) {
-          console.error('Error creating chat session:', error);
-          Alert.alert('Error', 'Gagal memulai sesi konsultasi');
-        } finally {
-          setSessionLoading(false);
-        }
-      }
-    };
+    }
+  }, [user, nutritionist]);
 
-    initializeChat();
-  }, [user, nutritionist, isNutritionist]);
-
-  const chatId = user && nutritionist 
-    ? (isNutritionist ? `${id}-${user.$id}` : `${user.$id}-${id}`)
-    : null;
+  const chatId = user && nutritionist ? `${user.$id}-${nutritionist.$id}` : null;
   const chatMessages = chatId ? (messages[chatId] || []) : [];
 
   useEffect(() => {
+    // Scroll ke pesan terbaru ketika ada pesan baru
     scrollViewRef.current?.scrollToEnd({ animated: true });
   }, [chatMessages]);
 
   useEffect(() => {
+    // Mark unread messages as read when opening chat
     chatMessages.forEach((message: Message) => {
-      if (!message.read && message.sender === (isNutritionist ? 'user' : 'nutritionist')) {
+      if (!message.read && message.sender === 'nutritionist') {
         markMessageAsRead(message.$id);
       }
     });
-  }, [chatMessages, markMessageAsRead, isNutritionist]);
+  }, [chatMessages, markMessageAsRead]);
+
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSend = async () => {
     if (!user) {
@@ -90,17 +59,17 @@ const ChatScreen = () => {
       return;
     }
 
-    if (sending) return;
+    if (sending) {
+      return;
+    }
 
     try {
       setSending(true);
       setErrorMessage(null);
-
-      // Send message to the correct recipient based on role
-      const recipientId = isNutritionist ? id : nutritionist.$id;
-      await addMessage(recipientId, newMessage.trim());
-      
+      const chatId = `${user.$id}-${nutritionist.$id}`;
+      await addMessage(nutritionist.$id, newMessage.trim());
       setNewMessage('');
+      // Scroll to bottom after sending
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -112,57 +81,22 @@ const ChatScreen = () => {
     }
   };
 
-  const getMessageStyle = (sender: string) => {
-    const isOwnMessage = 
-      (isNutritionist && sender === 'nutritionist') ||
-      (!isNutritionist && sender === 'user');
-
-    return {
-      containerStyle: `flex-row mb-3 ${isOwnMessage ? 'justify-end' : 'justify-start'}`,
-      bubbleStyle: `rounded-2xl px-4 py-2 max-w-[80%] ${
-        isOwnMessage ? 'bg-[#1CD6CE]' : 'bg-gray-100'
-      }`,
-      textStyle: isOwnMessage ? 'text-white' : 'text-gray-900',
-      timeStyle: `text-xs mt-1 ${isOwnMessage ? 'text-white/70' : 'text-gray-500'}`
-    };
-  };
-
-  const handleEndSession = async () => {
-    if (!currentSession) return;
-
-    try {
-      setSessionLoading(true);
-      await endSession(currentSession.$id);
-      router.replace('/konsultasi');
-    } catch (error) {
-      console.error('Error ending session:', error);
-      Alert.alert('Error', 'Gagal mengakhiri sesi konsultasi');
-    } finally {
-      setSessionLoading(false);
-    }
-  };
-
-  if (loading || !nutritionist) {
+  if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-[#1CD6CE] items-center justify-center">
         <ActivityIndicator size="large" color="white" />
-        <Text className="text-white mt-4">
-          {loading ? 'Memuat percakapan...' : 'Ahli gizi tidak ditemukan'}
-        </Text>
-        {!loading && (
-          <Link href="/konsultasi" className="mt-4">
-            <Text className="text-white underline">Kembali ke daftar ahli gizi</Text>
-          </Link>
-        )}
+        <Text className="text-white mt-4">Memuat percakapan...</Text>
       </SafeAreaView>
     );
   }
 
-  if (sessionLoading) {
+  if (!nutritionist) {
     return (
       <SafeAreaView className="flex-1 bg-[#1CD6CE] items-center justify-center">
-        <ActivityIndicator size="large" color="white" />
-        <Text className="text-white mt-4">Mempersiapkan sesi konsultasi...</Text>
+        <Text className="text-white text-lg">Ahli gizi tidak ditemukan</Text>
+        <Link href="/konsultasi" className="mt-4">
+          <Text className="text-white underline">Kembali ke daftar ahli gizi</Text>
+        </Link>
       </SafeAreaView>
     );
   }
@@ -170,13 +104,13 @@ const ChatScreen = () => {
   return (
     <SafeAreaView className="flex-1 bg-[#1CD6CE]">
       {/* Header */}
-      <View className="flex-row items-center px-4 py-3 justify-between">
+      <View className="flex-row items-center px-4 py-3">
         <Link href="/konsultasi" className="mr-auto">
           <View className="w-8 h-8 justify-center">
             <Text className="text-white text-2xl">←</Text>
           </View>
         </Link>
-        <View className="flex-row items-center justify-center flex-1 mx-4">
+        <View className="flex-row items-center absolute left-0 right-0 justify-center">
           <View className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center mr-2">
             {nutritionist.avatar ? (
               <Image 
@@ -188,34 +122,11 @@ const ChatScreen = () => {
             )}
           </View>
           <Text className="text-white text-lg font-bold">
-            {isNutritionist ? 'Chat with User' : nutritionist.name}
+            {nutritionist.name}
           </Text>
           <View className={`w-2 h-2 rounded-full ${nutritionist.status === 'online' ? 'bg-green-500' : 'bg-gray-400'} ml-2`} />
         </View>
-        {currentSession && !isNutritionist && (
-          <TouchableOpacity
-            onPress={handleEndSession}
-            className="bg-red-500 rounded-full px-3 py-1"
-          >
-            <Text className="text-white text-sm font-medium">Akhiri</Text>
-          </TouchableOpacity>
-        )}
       </View>
-
-      {/* Consultation Status - Only show for regular users */}
-      {consultationStatus && !isNutritionist && (
-        <View className="bg-white px-4 py-2 border-b border-gray-200">
-          <Text className="text-sm text-gray-600">
-            Status: <Text className="font-medium capitalize">{consultationStatus.status}</Text>
-          </Text>
-          {consultationStatus.status === 'waiting' && (
-            <Text className="text-xs text-gray-500 mt-1">
-              Antrian: {consultationStatus.currentQueue} • 
-              Estimasi waktu: {consultationStatus.estimatedTime} menit
-            </Text>
-          )}
-        </View>
-      )}
 
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -230,31 +141,46 @@ const ChatScreen = () => {
           {chatMessages.length === 0 ? (
             <View className="flex-1 items-center justify-center py-8">
               <Text className="text-gray-500 text-center">
-                Belum ada percakapan. Mulai chat sekarang!
+                Belum ada percakapan. Mulai chat dengan {nutritionist.name} sekarang!
               </Text>
             </View>
           ) : (
-            chatMessages.map((message: Message) => {
-              const styles = getMessageStyle(message.sender);
-              return (
+            chatMessages.map((message: Message, index: number) => (
+              <View 
+                key={message.$id || index}
+                className={`flex-row ${message.sender === 'user' ? 'justify-end' : 'justify-start'} mb-3`}
+              >
                 <View 
-                  key={`${message.$id}-${message.time}`}
-                  className={styles.containerStyle}
+                  className={`rounded-2xl px-4 py-2 max-w-[80%] ${
+                    message.sender === 'user' 
+                      ? 'bg-[#1CD6CE]' 
+                      : 'bg-gray-100'
+                  }`}
                 >
-                  <View className={styles.bubbleStyle}>
-                    <Text className={styles.textStyle}>
-                      {message.text}
-                    </Text>
-                    <Text className={styles.timeStyle}>
-                      {new Date(message.time).toLocaleTimeString([], { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </Text>
-                  </View>
+                  <Text 
+                    className={`${
+                      message.sender === 'user' 
+                        ? 'text-white' 
+                        : 'text-gray-900'
+                    }`}
+                  >
+                    {message.text}
+                  </Text>
+                  <Text 
+                    className={`text-xs mt-1 ${
+                      message.sender === 'user'
+                        ? 'text-white/70'
+                        : 'text-gray-500'
+                    }`}
+                  >
+                    {new Date(message.time).toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </Text>
                 </View>
-              );
-            })
+              </View>
+            ))
           )}
         </ScrollView>
 
@@ -266,7 +192,7 @@ const ChatScreen = () => {
         )}
 
         {/* Message Input */}
-        <View className={`bg-white border-t border-gray-200 px-4 py-2 ${!currentSession && !isNutritionist ? 'opacity-50' : ''}`}>
+        <View className="bg-white border-t border-gray-200 px-4 py-2">
           <View className="flex-row items-center">
             <TextInput
               value={newMessage}
@@ -275,13 +201,13 @@ const ChatScreen = () => {
               className="flex-1 bg-gray-100 rounded-full px-4 py-2 mr-2"
               multiline
               maxLength={500}
-              editable={!sending && (isNutritionist || !!currentSession)}
+              editable={!sending}
             />
             <TouchableOpacity 
               onPress={handleSend}
-              disabled={!newMessage.trim() || sending || (!currentSession && !isNutritionist)}
+              disabled={!newMessage.trim() || sending}
               className={`w-10 h-10 rounded-full items-center justify-center ${
-                newMessage.trim() && !sending && (isNutritionist || currentSession) ? 'bg-[#1CD6CE]' : 'bg-gray-300'
+                newMessage.trim() && !sending ? 'bg-[#1CD6CE]' : 'bg-gray-300'
               }`}
             >
               {sending ? (
@@ -291,11 +217,6 @@ const ChatScreen = () => {
               )}
             </TouchableOpacity>
           </View>
-          {!currentSession && !isNutritionist && (
-            <Text className="text-xs text-gray-500 text-center mt-2">
-              Sesi konsultasi telah berakhir
-            </Text>
-          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
