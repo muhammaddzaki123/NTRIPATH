@@ -14,7 +14,7 @@ const KalkulatorGizi = () => {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={"white"} className='ml-2' />
         </TouchableOpacity>
-        <Text className="text-white text-xl font-bold  ml-4 ">DIET PLAN</Text>
+        <Text className="text-white text-xl font-bold  ml-4 ">KALKULATOR GIZI</Text>
         <TouchableOpacity onPress={() => router.back()} className="ml-auto">
           <Text className="text-3xl text-white mr-4">×</Text>
         </TouchableOpacity>

@@ -1,10 +1,9 @@
 import { Artikel } from '@/components/Berita';
 import Search from '@/components/Search';
-import { getArticles } from '@/lib/appwrite';
-import { useGlobalContext } from '@/lib/global-provider';
+import { useArticles } from '@/constants/useArticles';
 import { Article } from '@/types/article';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { FlatList, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,39 +11,28 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const categories = ['Semua',"hipertensi", "diabetes","kanker", 'nutrisi', 'diet', 'kesehatan',  "gizi seimbang", 'olahraga', 'lifestyle'];
 
 const ArtikelScreen = () => {
-  const { user } = useGlobalContext();
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [filteredArticles, setFilteredArticles] = useState<Article[]>([]);
+  const { articles, loading, error, searchArticles, filteredArticles } = useArticles();
   const [selectedCategory, setSelectedCategory] = useState('Semua');
-  const [loading, setLoading] = useState(true);
+  const params = useLocalSearchParams<{ query?: string }>();
 
+  // Handle search from URL params
   useEffect(() => {
-    const fetchArticles = async () => {
-      try {
-        const fetchedArticles = await getArticles();
-        const publishedArticles = (fetchedArticles as Article[]).filter(
-          article => article.isPublished
-        );
-        setArticles(publishedArticles);
-        setFilteredArticles(publishedArticles);
-      } catch (error) {
-        console.error('Error fetching articles:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchArticles();
-  }, []);
-
-  useEffect(() => {
-    if (selectedCategory === 'Semua') {
-      setFilteredArticles(articles);
-    } else {
-      const filtered = articles.filter(article => article.category === selectedCategory);
-      setFilteredArticles(filtered);
+    if (params.query) {
+      searchArticles(params.query);
     }
-  }, [selectedCategory, articles]);
+  }, [params.query]);
+
+  // Handle category filtering
+  useEffect(() => {
+    if (!params.query) {
+      if (selectedCategory === 'Semua') {
+        searchArticles(''); // Reset to show all articles
+      } else {
+        const filtered = articles.filter(article => article.category === selectedCategory);
+        searchArticles(selectedCategory);
+      }
+    }
+  }, [selectedCategory]);
 
   const handleArticlePress = (article: Article) => {
     router.push({
@@ -66,7 +54,7 @@ const ArtikelScreen = () => {
         </TouchableOpacity>
       </View>
 
-	{/* Search */}
+      {/* Search */}
       <View className='flex flex-col mt-4 border-t pt-2 border-white'>
         <Search />
       </View>
@@ -105,6 +93,10 @@ const ArtikelScreen = () => {
         <View className="flex-1 justify-center items-center">
           <Text className="text-white">Loading articles...</Text>
         </View>
+      ) : error ? (
+        <View className="flex-1 justify-center items-center">
+          <Text className="text-white">{error}</Text>
+        </View>
       ) : filteredArticles.length === 0 ? (
         <View className="flex-1 justify-center items-center">
           <Text className="text-white">No articles found</Text>
@@ -122,7 +114,7 @@ const ArtikelScreen = () => {
           columnWrapperClassName="flex gap-5 px-5"
           contentContainerClassName="pb-32"
           showsHorizontalScrollIndicator={false}
-          className='bg-primary-400  mt-4'
+          className='bg-primary-400 mt-4'
         />
       )}
     </SafeAreaView>

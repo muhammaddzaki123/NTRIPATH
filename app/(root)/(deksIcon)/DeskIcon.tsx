@@ -1,44 +1,43 @@
-import { Artikel } from '@/components/Berita';
-import Search from '@/components/Search';
-import { useGlobalContext } from '@/lib/global-provider';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import React from 'react';
-import { FlatList, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { features } from "@/constants/data";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import React from "react";
+import { Image, SafeAreaView, Text, TouchableOpacity, View } from "react-native";
 
-const artikel = () => {
-  const {user} = useGlobalContext();
-  
+
+const DeskIcon = () => {
   return (
-    <SafeAreaView className='bg-primary-500 h-full p-4'>
+  <SafeAreaView className='bg-primary-400 h-full p-4 pb-2'>
       {/* Header */}
-      <View className="flex-row items-center ">
+      <View className="flex-row items-center pt-5 border-b border-white mb-1 bg-primary-500">
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={"white"} />
+          <Ionicons name="arrow-back" size={24} color={"white"} className='ml-2' />
         </TouchableOpacity>
-        <Text className="text-white text-xl font-bold  ml-4 ">ARTIKEL GIZI</Text>
+        <Text className="text-white text-xl font-bold  ml-4 ">DIET PLAN</Text>
         <TouchableOpacity onPress={() => router.back()} className="ml-auto">
           <Text className="text-3xl text-white mr-4">×</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Content */}
-      <View className='felx flex-col mt-5 border-t pt-2 border-white'>
-      <Search/>
-      </View>
-        <FlatList
-        data={[1, 2, 3, 4, 5, 6]}
-        renderItem={({item})=>
-        <Artikel/>}
-        numColumns={2}
-        columnWrapperClassName="flex gap-5 px-5"
-        contentContainerClassName="pb-32"
-        showsHorizontalScrollIndicator={false}
-        className='bg-primary-400 pd-5 mt-5'
-      />
-    </SafeAreaView>
-  )
-}
+    <View className=" items-center-center rounded-xl mt-5">
 
-export default artikel
+      {features.map((feature, index) => (
+        <View
+          key={index}
+          className="flex-row bg-white rounded-lg p-4 mb-4 shadow"
+        >
+          <View className="w-16 h-16 rounded-full bg-cyan-300 justify-center items-center mr-4">
+            <Image source={feature.image} className="w-10 h-10" />
+          </View>
+          <View className="flex-1">
+            <Text className="font-semibold mb-1">{feature.title}</Text>
+            <Text className="text-sm text-gray-700">{feature.description}</Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  </SafeAreaView>
+  );
+};
+
+export default DeskIcon;

@@ -1,22 +1,29 @@
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
-import { View, TouchableOpacity, Image, TextInput } from "react-native";
+import { Image, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useDebouncedCallback } from "use-debounce";
-
 import icons from "@/constants/icons";
-import { useLocalSearchParams, router, usePathname } from "expo-router";
 
 const Search = () => {
-  const path = usePathname();
   const params = useLocalSearchParams<{ query?: string }>();
-  const [search, setSearch] = useState(params.query);
+  const [search, setSearch] = useState(params.query || '');
 
   const debouncedSearch = useDebouncedCallback((text: string) => {
-    router.setParams({ query: text });
+    if (text) {
+      router.setParams({ query: text });
+    } else {
+      router.setParams({});
+    }
   }, 500);
 
   const handleSearch = (text: string) => {
     setSearch(text);
     debouncedSearch(text);
+  };
+
+  const handleClear = () => {
+    setSearch('');
+    router.setParams({});
   };
 
   return (
@@ -26,14 +33,20 @@ const Search = () => {
         <TextInput
           value={search}
           onChangeText={handleSearch}
-          placeholder="Search for anything"
+          placeholder="Cari artikel..."
           className="text-sm font-rubik text-black-300 ml-2 flex-1"
+          placeholderTextColor="#666"
         />
       </View>
 
-      <TouchableOpacity>
-        <Image source={icons.fillter} className="size-5" />
-      </TouchableOpacity>
+      {search ? (
+        <TouchableOpacity 
+          onPress={handleClear}
+          className="ml-2"
+        >
+          <Text className="text-primary-500 text-lg">×</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 };
