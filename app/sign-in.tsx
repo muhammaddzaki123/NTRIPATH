@@ -22,7 +22,7 @@ export default function SignIn() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [userType, setUserType] = useState("user"); // "user" or "nutritionist"
+  const [userType, setUserType] = useState("user"); 
 
   React.useEffect(() => {
     if (!loading && isLogged) {
@@ -58,34 +58,29 @@ export default function SignIn() {
   return (
     <SafeAreaView className="flex-1 bg-white">
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View className="flex-1 px-6 py-12">
+        <View className="flex-1 px-6 py-6">
           {/* Logo */}
           <View className="items-center mb-8">
             <Image
               source={images.logoawal}
-              className="w-32 h-32"
+              className="w-[250px] h-[250px]"
               resizeMode="contain"
             />
           </View>
 
           {/* Welcome Text */}
-          <View className="mb-12">
+          <View className="mb-6">
             <Text className="text-base text-center uppercase font-rubik text-gray-600">
-              Selamat datang Di Nutripath
+              Selamat datang Di
             </Text>
 
             <Text className="text-3xl font-rubik-bold text-gray-900 text-center mt-2">
-              aplikasi konsultasi {"\n"}
-              <Text className="text-[#1CD6CE]">Your Ideal Home</Text>
-            </Text>
-
-            <Text className="text-lg font-rubik text-gray-600 text-center mt-4">
-              Gizi terjaga
+              NUTRIPATH {"\n"}
             </Text>
           </View>
 
           {/* Login Form */}
-          <View className="space-y-4">
+          <View className="space-y-2 ">
             <TextInput
               placeholder="Email"
               value={email}
@@ -99,9 +94,9 @@ export default function SignIn() {
               value={password}
               onChangeText={setPassword}
               secureTextEntry
-              className="border border-gray-300 rounded-md px-4 py-3 text-base"
+              className="border border-gray-300 rounded-md px-4 py-3 text-base mt-3"
             />
-            <View className="border border-gray-300 rounded-md px-4 py-3">
+            <View className="border border-gray-300 rounded-md px-4 py-3 mt-3">
               <Picker
                 selectedValue={userType}
                 onValueChange={(itemValue: string) => setUserType(itemValue)}
@@ -112,14 +107,14 @@ export default function SignIn() {
             </View>
             <TouchableOpacity
               onPress={handleLogin}
-              className="bg-[#1CD6CE] rounded-full py-4 items-center"
+              className="bg-[#1CD6CE] rounded-full py-4 items-center mt-3"
             >
-              <Text className="text-white text-lg font-rubik-medium">
+              <Text className="text-white text-lg font-rubik-medium mt-3">
                 Login
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
+          </View>
       </ScrollView>
     </SafeAreaView>
   );

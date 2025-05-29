@@ -3,9 +3,9 @@ import { Link } from 'expo-router';
 import React from 'react';
 import { ActivityIndicator, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useChat } from '../../../contexts/ChatContext';
-import { useGlobalContext } from '../../../lib/global-provider';
-import { Nutritionist } from '../../../types/chat';
+import { useChat } from '@/contexts/ChatContext';
+import { useGlobalContext } from '@/lib/global-provider';
+import { Nutritionist } from '@/types/chat';
 
 const KonsultasiScreen = () => {
   const { nutritionists, unreadMessages, loading, messages } = useChat();

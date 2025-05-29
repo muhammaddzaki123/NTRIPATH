@@ -95,7 +95,7 @@ const Home = () => {
           <View className="bg-white rounded-2xl overflow-hidden w-72 shadow-lg">
             <View className="bg-white p-3 rounded-t-2xl">
               <Image 
-                source={images.logoawal}
+                source={images.artikel1}
                 className="w-full h-36 rounded-xl"
                 resizeMode="cover"
               />

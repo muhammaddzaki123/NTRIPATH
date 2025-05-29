@@ -261,6 +261,86 @@ export async function getLatestProperties() {
   }
 }
 
+//artikel
+export async function getArticles() {
+  try {
+    const result = await databases.listDocuments(
+      config.databaseId!,
+      config.artikelCollectionId!,
+      [
+        Query.equal("isPublished", true),
+        Query.orderDesc("$createdAt")
+      ]
+    );
+    
+    // Transform the response to match our Article interface
+    const articles = result.documents.map(doc => ({
+      $id: doc.$id,
+      $createdAt: doc.$createdAt,
+      $updatedAt: doc.$updatedAt,
+      title: doc.title,
+      description: doc.description,
+      content: doc.content,
+      image: doc.image,
+      category: doc.category,
+      author: doc.author,
+      tags: doc.tags || [],
+      isPublished: doc.isPublished,
+      viewCount: doc.viewCount || 0
+    }));
+
+    return articles;
+  } catch (error) {
+    console.error('Error fetching articles:', error);
+    return [];
+  }
+}
+
+export async function getArticleById(id: string) {
+  try {
+    const doc = await databases.getDocument(
+      config.databaseId!,
+      config.artikelCollectionId!,
+      id
+    );
+
+    // Transform the response to match our Article interface
+    const article = {
+      $id: doc.$id,
+      $createdAt: doc.$createdAt,
+      $updatedAt: doc.$updatedAt,
+      title: doc.title,
+      description: doc.description,
+      content: doc.content,
+      image: doc.image,
+      category: doc.category,
+      author: doc.author,
+      tags: doc.tags || [],
+      isPublished: doc.isPublished,
+      viewCount: doc.viewCount || 0
+    };
+
+    // Update view count
+    if (doc.isPublished) {
+      await databases.updateDocument(
+        config.databaseId!,
+        config.artikelCollectionId!,
+        id,
+        {
+          viewCount: (doc.viewCount || 0) + 1
+        }
+      );
+    }
+
+    return article;
+  } catch (error) {
+    console.error('Error fetching article:', error);
+    return null;
+  }
+}
+//artikel last
+
+
 export async function getProperties({
   filter,
   query,
