@@ -6,7 +6,7 @@ import {
   Query,
   Storage
 } from "react-native-appwrite";
-import { ChatSubscriptionResponse, Message, Nutritionist } from "../types/chat";
+import { ChatSubscriptionResponse, Message, Nutritionist } from "@/types/chat";
 
 export const config = {
   platform: "com.poltekes.nutripath",

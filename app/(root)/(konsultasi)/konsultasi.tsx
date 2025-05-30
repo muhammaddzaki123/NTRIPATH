@@ -1,27 +1,59 @@
 import { FontAwesome } from '@expo/vector-icons';
-import { Link } from 'expo-router';
-import React from 'react';
-import { ActivityIndicator, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Link, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useChat } from '@/contexts/ChatContext';
-import { useGlobalContext } from '@/lib/global-provider';
-import { Nutritionist } from '@/types/chat';
+import { useChat } from '../../../contexts/ChatContext';
+import { getNutritionistChats } from '../../../lib/chat-service';
+import { useGlobalContext } from '../../../lib/global-provider';
+import { Message, Nutritionist } from '../../../types/chat';
 
 const KonsultasiScreen = () => {
-  const { nutritionists, unreadMessages, loading, messages } = useChat();
+  const { nutritionists, unreadMessages, loading: chatLoading, messages } = useChat();
   const { user } = useGlobalContext();
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [nutritionistChats, setNutritionistChats] = useState<{[key: string]: Message[]}>({});
 
-  // Jika tidak ada user yang login, tampilkan pesan error
+  // Load nutritionist chats
+  useEffect(() => {
+    const loadNutritionistChats = async () => {
+      if (!user || user.userType !== 'nutritionist') return;
+
+      try {
+        setLoading(true);
+        console.log('Loading chats for nutritionist:', user.$id);
+        const chats = await getNutritionistChats(user.$id);
+        console.log('Loaded chats:', Object.keys(chats).length);
+        setNutritionistChats(chats);
+      } catch (error) {
+        console.error('Error loading nutritionist chats:', error);
+        Alert.alert('Error', 'Gagal memuat daftar chat');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadNutritionistChats();
+  }, [user]);
+
+  // Check if user is logged in
   if (!user) {
     return (
       <SafeAreaView className="flex-1 bg-[#1CD6CE] items-center justify-center">
-        <Text className="text-white text-lg">Silakan login terlebih dahulu</Text>
+        <Text className="text-white text-lg mb-4">Silakan login terlebih dahulu</Text>
+        <TouchableOpacity 
+          onPress={() => router.replace('/sign-in')}
+          className="bg-white px-6 py-2 rounded-full"
+        >
+          <Text className="text-[#1CD6CE] font-semibold">Login</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
-  // Tampilkan loading state
-  if (loading) {
+  // Show loading state only for initial load
+  if ((loading && user.userType === 'nutritionist') || (chatLoading && user.userType === 'user')) {
     return (
       <SafeAreaView className="flex-1 bg-[#1CD6CE] items-center justify-center">
         <ActivityIndicator size="large" color="white" />
@@ -32,19 +64,25 @@ const KonsultasiScreen = () => {
     );
   }
 
-  // Jika user adalah ahli gizi, tampilkan daftar chat dari user
+  // If user is a nutritionist, show chat list
   if (user.userType === 'nutritionist') {
-    // Dapatkan semua chat yang terkait dengan ahli gizi ini
-    const nutritionistChats = Object.entries(messages)
-      .filter(([chatId]) => chatId.includes(user.$id))
+    const chatList = Object.entries(nutritionistChats)
       .map(([chatId, chatMessages]) => {
         const lastMessage = chatMessages[chatMessages.length - 1];
         const userId = chatId.split('-')[0];
         const unreadCount = chatMessages.filter(
           msg => !msg.read && msg.sender === 'user'
         ).length;
-        return { chatId, lastMessage, userId, unreadCount };
-      });
+
+        return {
+          chatId,
+          lastMessage,
+          userId,
+          unreadCount,
+          timestamp: lastMessage?.time || ''
+        };
+      })
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
     return (
       <SafeAreaView className="flex-1 bg-[#1CD6CE]">
@@ -61,26 +99,34 @@ const KonsultasiScreen = () => {
 
         <ScrollView className="flex-1 bg-white rounded-t-3xl">
           <View className="p-4">
-            {nutritionistChats.length > 0 ? (
-              nutritionistChats.map(({ chatId, lastMessage, userId, unreadCount }) => (
+            {chatList.length > 0 ? (
+              chatList.map(({ chatId, lastMessage, userId, unreadCount }) => (
                 <Link
                   key={chatId}
                   href={`/chat/${userId}`}
                   asChild
                 >
-                  <TouchableOpacity className="mb-4 bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+                  <TouchableOpacity 
+                    className="mb-4 bg-white rounded-xl border border-gray-100 shadow-sm p-4"
+                    style={{ elevation: 2 }}
+                  >
                     <View className="flex-row items-center">
                       <View className="w-12 h-12 rounded-full bg-gray-100 items-center justify-center">
                         <FontAwesome name="user-circle" size={30} color="#666" />
                       </View>
                       <View className="ml-3 flex-1">
                         <Text className="font-bold text-gray-900">
-                          {lastMessage?.userName || messages[chatId]?.[0]?.userName || `User ${userId}`}
+                          User {userId}
                         </Text>
                         {lastMessage && (
-                          <Text className="text-gray-500 text-sm mt-1" numberOfLines={1}>
-                            {lastMessage.text}
-                          </Text>
+                          <>
+                            <Text className="text-gray-500 text-sm mt-1" numberOfLines={1}>
+                              {lastMessage.text}
+                            </Text>
+                            <Text className="text-gray-400 text-xs mt-1">
+                              {new Date(lastMessage.time).toLocaleString()}
+                            </Text>
+                          </>
                         )}
                       </View>
                       {unreadCount > 0 && (
@@ -107,11 +153,7 @@ const KonsultasiScreen = () => {
     );
   }
 
-  // Jika user adalah user biasa, tampilkan daftar ahli gizi
-  const getStatusColor = (status: 'online' | 'offline') => {
-    return status === 'online' ? 'bg-green-500' : 'bg-gray-400';
-  };
-
+  // For regular users, show nutritionist list with optimized rendering
   return (
     <SafeAreaView className="flex-1 bg-[#1CD6CE]">
       <View className="flex-row items-center px-4 py-3">
@@ -125,7 +167,10 @@ const KonsultasiScreen = () => {
         </Text>
       </View>
 
-      <ScrollView className="flex-1 bg-white rounded-t-3xl">
+      <ScrollView 
+        className="flex-1 bg-white rounded-t-3xl"
+        removeClippedSubviews={true}
+      >
         <View className="p-4">
           {nutritionists && nutritionists.length > 0 ? (
             nutritionists.map((nutritionist: Nutritionist) => (
@@ -134,7 +179,10 @@ const KonsultasiScreen = () => {
                 href={`/chat/${nutritionist.$id}`}
                 asChild
               >
-                <TouchableOpacity className="mb-4 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <TouchableOpacity 
+                  className="mb-4 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
+                  style={{ elevation: 2 }}
+                >
                   {/* Header with Status */}
                   <View className="flex-row items-center p-4 border-b border-gray-100">
                     <View className="w-16 h-16 rounded-full bg-gray-100 items-center justify-center">
@@ -152,7 +200,9 @@ const KonsultasiScreen = () => {
                         {nutritionist.name}
                       </Text>
                       <View className="flex-row items-center mt-1">
-                        <View className={`w-2 h-2 rounded-full ${getStatusColor(nutritionist.status)} mr-2`} />
+                        <View className={`w-2 h-2 rounded-full ${
+                          nutritionist.status === 'online' ? 'bg-green-500' : 'bg-gray-400'
+                        } mr-2`} />
                         <Text className="text-sm text-gray-500 capitalize">
                           {nutritionist.status}
                         </Text>

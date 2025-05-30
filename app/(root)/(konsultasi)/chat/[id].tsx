@@ -1,81 +1,126 @@
-import { useChat } from '@/contexts/ChatContext';
-import { useGlobalContext } from '@/lib/global-provider';
-import { Message, Nutritionist } from '@/types/chat';
 import { FontAwesome } from '@expo/vector-icons';
-import { Link, useLocalSearchParams } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useChat } from '../../../../contexts/ChatContext';
+import { useGlobalContext } from '../../../../lib/global-provider';
+import { Message, Nutritionist } from '../../../../types/chat';
 
 const ChatScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const { nutritionists, messages, addMessage, markMessageAsRead, loading, setCurrentChat } = useChat();
   const { user } = useGlobalContext();
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   
-  const nutritionist = nutritionists.find((n: Nutritionist) => n.$id === id);
-  
-  useEffect(() => {
-    if (user && nutritionist) {
-      const chatIdComputed = `${user.$id}-${nutritionist.$id}`;
-      setCurrentChat(chatIdComputed);
-    }
-  }, [user, nutritionist]);
-
-  const chatId = user && nutritionist ? `${user.$id}-${nutritionist.$id}` : null;
-  const chatMessages = chatId ? (messages[chatId] || []) : [];
+  // For nutritionist view, we need to find the user details
+  const chatPartner = user?.userType === 'nutritionist' 
+    ? { name: `User ${id}`, avatar: null }
+    : nutritionists.find((n: Nutritionist) => n.$id === id);
 
   useEffect(() => {
-    // Scroll ke pesan terbaru ketika ada pesan baru
-    scrollViewRef.current?.scrollToEnd({ animated: true });
-  }, [chatMessages]);
-
-  useEffect(() => {
-    // Mark unread messages as read when opening chat
-    chatMessages.forEach((message: Message) => {
-      if (!message.read && message.sender === 'nutritionist') {
-        markMessageAsRead(message.$id);
-      }
-    });
-  }, [chatMessages, markMessageAsRead]);
-
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const handleSend = async () => {
     if (!user) {
-      setErrorMessage('Anda harus login terlebih dahulu');
+      Alert.alert(
+        'Tidak dapat mengakses chat',
+        'Anda harus login terlebih dahulu',
+        [{ text: 'OK', onPress: () => router.replace('/sign-in') }]
+      );
       return;
     }
 
-    if (!nutritionist) {
-      setErrorMessage('Ahli gizi tidak ditemukan');
+    if (user && id) {
+      // Compute chatId based on user type
+      const chatIdComputed = user.userType === 'nutritionist'
+        ? `${id}-${user.$id}`      // For nutritionist view: userId-nutritionistId
+        : `${user.$id}-${id}`;     // For user view: userId-nutritionistId
+      
+      console.log('Setting current chat:', chatIdComputed);
+      setCurrentChat(chatIdComputed);
+    }
+  }, [user, id]);
+
+  const chatId = user && id 
+    ? (user.userType === 'nutritionist' ? `${id}-${user.$id}` : `${user.$id}-${id}`)
+    : null;
+  const chatMessages = chatId ? (messages[chatId] || []) : [];
+
+  // Auto scroll to bottom when new messages arrive
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [chatMessages]);
+
+  // Mark messages as read
+  useEffect(() => {
+    const markUnreadMessages = async () => {
+      for (const message of chatMessages) {
+        if (!message.read && message.sender !== user?.userType) {
+          try {
+            await markMessageAsRead(message.$id);
+          } catch (error) {
+            console.error('Error marking message as read:', error);
+          }
+        }
+      }
+    };
+    if (chatMessages.length > 0) {
+      markUnreadMessages();
+    }
+  }, [chatMessages, user]);
+
+  const handleSend = async () => {
+    if (!user) {
+      Alert.alert(
+        'Tidak dapat mengirim pesan',
+        'Anda harus login terlebih dahulu',
+        [{ text: 'OK', onPress: () => router.replace('/sign-in') }]
+      );
+      return;
+    }
+
+    if (!id) {
+      Alert.alert('Error', 'ID chat partner tidak ditemukan');
       return;
     }
 
     if (!newMessage.trim()) {
-      setErrorMessage('Pesan tidak boleh kosong');
+      Alert.alert('Error', 'Pesan tidak boleh kosong');
       return;
     }
 
-    if (sending) {
-      return;
-    }
+    if (sending) return;
 
     try {
       setSending(true);
-      setErrorMessage(null);
-      const chatId = `${user.$id}-${nutritionist.$id}`;
-      await addMessage(nutritionist.$id, newMessage.trim());
+      await addMessage(id, newMessage.trim());
       setNewMessage('');
+      
       // Scroll to bottom after sending
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
     } catch (error) {
       console.error('Error sending message:', error);
-      setErrorMessage('Gagal mengirim pesan. Silakan coba lagi.');
+      Alert.alert(
+        'Gagal mengirim pesan',
+        'Terjadi kesalahan saat mengirim pesan. Silakan coba lagi.'
+      );
     } finally {
       setSending(false);
     }
@@ -90,12 +135,14 @@ const ChatScreen = () => {
     );
   }
 
-  if (!nutritionist) {
+  if (!chatPartner) {
     return (
       <SafeAreaView className="flex-1 bg-[#1CD6CE] items-center justify-center">
-        <Text className="text-white text-lg">Ahli gizi tidak ditemukan</Text>
+        <Text className="text-white text-lg">
+          {user?.userType === 'nutritionist' ? 'User tidak ditemukan' : 'Ahli gizi tidak ditemukan'}
+        </Text>
         <Link href="/konsultasi" className="mt-4">
-          <Text className="text-white underline">Kembali ke daftar ahli gizi</Text>
+          <Text className="text-white underline">Kembali ke {user?.userType === 'nutritionist' ? 'daftar chat' : 'daftar ahli gizi'}</Text>
         </Link>
       </SafeAreaView>
     );
@@ -112,9 +159,9 @@ const ChatScreen = () => {
         </Link>
         <View className="flex-row items-center absolute left-0 right-0 justify-center">
           <View className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center mr-2">
-            {nutritionist.avatar ? (
+            {chatPartner.avatar ? (
               <Image 
-                source={{ uri: nutritionist.avatar }}
+                source={{ uri: chatPartner.avatar }}
                 style={{ width: 40, height: 40, borderRadius: 20 }}
               />
             ) : (
@@ -122,15 +169,22 @@ const ChatScreen = () => {
             )}
           </View>
           <Text className="text-white text-lg font-bold">
-            {nutritionist.name}
+            {chatPartner.name}
           </Text>
-          <View className={`w-2 h-2 rounded-full ${nutritionist.status === 'online' ? 'bg-green-500' : 'bg-gray-400'} ml-2`} />
+          {user?.userType === 'user' && 'status' in chatPartner && (
+            <View 
+              className={`w-2 h-2 rounded-full ${
+                (chatPartner as Nutritionist).status === 'online' ? 'bg-green-500' : 'bg-gray-400'
+              } ml-2`} 
+            />
+          )}
         </View>
       </View>
 
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1"
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {/* Chat Messages */}
         <ScrollView 
@@ -141,44 +195,52 @@ const ChatScreen = () => {
           {chatMessages.length === 0 ? (
             <View className="flex-1 items-center justify-center py-8">
               <Text className="text-gray-500 text-center">
-                Belum ada percakapan. Mulai chat dengan {nutritionist.name} sekarang!
+                Belum ada percakapan. Mulai chat dengan {chatPartner.name} sekarang!
               </Text>
             </View>
           ) : (
             chatMessages.map((message: Message, index: number) => {
-              const key = message.$id ? message.$id : `${message.chatId}-${message.time}-${index}`;
+              const isUser = message.sender === user?.userType;
+              const key = message.$id || `${message.chatId}-${message.time}-${index}`;
+              const showAvatar = !isUser && (!chatMessages[index - 1] || chatMessages[index - 1].sender === user?.userType);
+              
               return (
                 <View 
                   key={key}
-                  className={`flex-row ${message.sender === 'user' ? 'justify-end' : 'justify-start'} mb-3`}
+                  className={`flex-row ${isUser ? 'justify-end' : 'justify-start'} mb-3`}
                 >
+                  {!isUser && showAvatar && (
+                    <View className="w-8 h-8 rounded-full bg-gray-100 mr-2">
+                      {chatPartner.avatar ? (
+                        <Image 
+                          source={{ uri: chatPartner.avatar }}
+                          className="w-8 h-8 rounded-full"
+                        />
+                      ) : (
+                        <FontAwesome name="user-circle" size={20} color="#666" />
+                      )}
+                    </View>
+                  )}
                   <View 
-                    className={`rounded-2xl px-4 py-2 max-w-[80%] ${
-                      message.sender === 'user' 
-                        ? 'bg-[#1CD6CE]' 
-                        : 'bg-gray-100'
+                    className={`rounded-2xl px-4 py-2 max-w-[75%] ${
+                      isUser ? 'bg-[#1CD6CE]' : 'bg-gray-100'
                     }`}
                   >
-                    <Text 
-                      className={`${
-                        message.sender === 'user' 
-                          ? 'text-white' 
-                          : 'text-gray-900'
-                      }`}
-                    >
+                    <Text className={isUser ? 'text-white' : 'text-gray-900'}>
                       {message.text}
                     </Text>
                     <Text 
                       className={`text-xs mt-1 ${
-                        message.sender === 'user'
-                          ? 'text-white/70'
-                          : 'text-gray-500'
+                        isUser ? 'text-white/70' : 'text-gray-500'
                       }`}
                     >
                       {new Date(message.time).toLocaleTimeString([], { 
                         hour: '2-digit', 
                         minute: '2-digit' 
                       })}
+                      {message.read && isUser && (
+                        <Text className="ml-1">✓</Text>
+                      )}
                     </Text>
                   </View>
                 </View>
@@ -186,13 +248,6 @@ const ChatScreen = () => {
             })
           )}
         </ScrollView>
-
-        {/* Error Message */}
-        {errorMessage && (
-          <View className="bg-red-100 px-4 py-2">
-            <Text className="text-red-600 text-center">{errorMessage}</Text>
-          </View>
-        )}
 
         {/* Message Input */}
         <View className="bg-white border-t border-gray-200 px-4 py-2">

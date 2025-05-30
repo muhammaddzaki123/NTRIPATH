@@ -1,44 +1,55 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import {
-  getChatMessages as getChatMessagesAPI,
-  getNutritionists as getNutritionistsAPI,
-  markMessageAsRead as markMessageAsReadAPI,
-  sendMessage as sendMessageAPI,
-  subscribeToChat as subscribeToChatAPI
-} from '../lib/appwrite';
+  getChatMessages,
+  getNutritionistChats,
+  getNutritionists,
+  getUnreadCount,
+  markMessageAsRead,
+  sendMessage,
+  subscribeToChat,
+  subscribeToNutritionistChats,
+  updateNutritionistStatus
+} from '../lib/chat-service';
 import { useGlobalContext } from '../lib/global-provider';
-import { Message, Nutritionist } from '../types/chat';
-
-interface ChatContextType {
-  messages: { [key: string]: Message[] };
-  addMessage: (nutritionistId: string, text: string) => Promise<void>;
-  nutritionists: Nutritionist[];
-  currentChat: string | null;
-  setCurrentChat: (chatId: string | null) => void;
-  markMessageAsRead: (messageId: string) => Promise<void>;
-  unreadMessages: { [key: string]: number };
-  loading: boolean;
-}
+import {
+  ChatContextType,
+  Message,
+  MessageState,
+  Nutritionist,
+  UnreadMessageState,
+  User
+} from '../types/chat';
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
-export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
-  const [messages, setMessages] = useState<{ [key: string]: Message[] }>({});
+export const ChatProvider = ({ children }: { children: ReactNode }) => {
+  const [messages, setMessages] = useState<MessageState>({});
   const [nutritionists, setNutritionists] = useState<Nutritionist[]>([]);
   const [currentChat, setCurrentChat] = useState<string | null>(null);
-  const [unreadMessages, setUnreadMessages] = useState<{ [key: string]: number }>({});
-  const [loading, setLoading] = useState(true);
-  const { user } = useGlobalContext();
+  const [unreadMessages, setUnreadMessages] = useState<UnreadMessageState>({});
+  const [loading, setLoading] = useState(false);
+  const { user } = useGlobalContext() as { user: User | null };
 
-  // Fetch nutritionists
+  // Fetch nutritionists list and setup status
   useEffect(() => {
     const fetchNutritionists = async () => {
       if (!user) return;
       
       try {
         setLoading(true);
-        const fetchedNutritionists = await getNutritionistsAPI();
+        console.log('Fetching nutritionists...');
+        const fetchedNutritionists = await getNutritionists();
         setNutritionists(fetchedNutritionists);
+        console.log('Fetched nutritionists:', fetchedNutritionists.length);
+
+        // If user is a nutritionist, update their status to online
+        if (user.userType === 'nutritionist') {
+          await updateNutritionistStatus(user.$id, 'online');
+          
+          // Load all chats for nutritionist
+          const chats = await getNutritionistChats(user.$id);
+          setMessages(chats);
+        }
       } catch (error) {
         console.error('Error fetching nutritionists:', error);
       } finally {
@@ -47,6 +58,13 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     fetchNutritionists();
+
+    // Cleanup: Set nutritionist status to offline when unmounting
+    return () => {
+      if (user?.userType === 'nutritionist') {
+        updateNutritionistStatus(user.$id, 'offline').catch(console.error);
+      }
+    };
   }, [user]);
 
   // Subscribe to real-time messages for current chat
@@ -54,49 +72,60 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user || !currentChat) return;
 
     let unsubscribe: (() => void) | undefined;
-    let isSubscribed = true; // Flag untuk mencegah update state setelah unmount
+    let isSubscribed = true;
     
     const setupSubscription = async () => {
       try {
         console.log('Setting up subscription for chat:', currentChat);
         
-        unsubscribe = await subscribeToChatAPI(currentChat, (newMessage: Message) => {
-          if (!isSubscribed) return; // Jangan update state jika component sudah unmount
+        unsubscribe = await subscribeToChat(currentChat, (newMessage: Message) => {
+          if (!isSubscribed) return;
 
-          console.log('Received new message:', newMessage);
+          console.log('Received message:', newMessage);
           
-          setMessages(prev => {
+          setMessages((prev: MessageState) => {
             const chatMessages = prev[newMessage.chatId] || [];
-            // Cek apakah pesan sudah ada untuk menghindari duplikasi
-            const messageExists = chatMessages.some(msg => msg.$id === newMessage.$id);
-            if (messageExists) return prev;
+            const messageExists = chatMessages.some((msg: Message) => msg.$id === newMessage.$id);
             
+            if (messageExists) {
+              // Update existing message (e.g., read status)
+              return {
+                ...prev,
+                [newMessage.chatId]: chatMessages.map((msg: Message) =>
+                  msg.$id === newMessage.$id ? newMessage : msg
+                )
+              };
+            }
+            
+            // Add new message
             return {
               ...prev,
               [newMessage.chatId]: [...chatMessages, newMessage]
             };
           });
 
-          // Update unread messages count untuk pesan dari ahli gizi
-          if (newMessage.sender === 'nutritionist' && currentChat !== newMessage.chatId) {
-            setUnreadMessages(prev => ({
-              ...prev,
-              [newMessage.chatId]: (prev[newMessage.chatId] || 0) + 1
-            }));
+          // Update unread count for messages from the other party
+          if (user.userType === 'nutritionist' && newMessage.sender === 'user' ||
+              user.userType === 'user' && newMessage.sender === 'nutritionist') {
+            if (currentChat !== newMessage.chatId) {
+              setUnreadMessages((prev: UnreadMessageState) => ({
+                ...prev,
+                [newMessage.chatId]: (prev[newMessage.chatId] || 0) + 1
+              }));
+            }
           }
         });
 
         console.log('Chat subscription setup successful');
       } catch (error) {
         console.error('Error setting up chat subscription:', error);
-        // Tambahkan retry logic jika diperlukan
       }
     };
 
     setupSubscription();
 
     return () => {
-      isSubscribed = false; // Set flag false saat cleanup
+      isSubscribed = false;
       if (unsubscribe) {
         console.log('Cleaning up chat subscription');
         unsubscribe();
@@ -104,25 +133,106 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [user, currentChat]);
 
-  // Fetch existing messages
+  // Subscribe to all chats if user is a nutritionist
+  useEffect(() => {
+    if (!user || user.userType !== 'nutritionist') return;
+
+    let unsubscribe: (() => void) | undefined;
+    let isSubscribed = true;
+
+    const setupNutritionistSubscription = async () => {
+      try {
+        console.log('Setting up nutritionist subscription');
+        
+        unsubscribe = await subscribeToNutritionistChats(user.$id, (newMessage: Message) => {
+          if (!isSubscribed) return;
+
+          console.log('Received message for nutritionist:', newMessage);
+          
+          setMessages((prev: MessageState) => {
+            const chatMessages = prev[newMessage.chatId] || [];
+            const messageExists = chatMessages.some((msg: Message) => msg.$id === newMessage.$id);
+            
+            if (messageExists) {
+              return {
+                ...prev,
+                [newMessage.chatId]: chatMessages.map((msg: Message) =>
+                  msg.$id === newMessage.$id ? newMessage : msg
+                )
+              };
+            }
+            
+            return {
+              ...prev,
+              [newMessage.chatId]: [...chatMessages, newMessage].sort(
+                (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()
+              )
+            };
+          });
+
+          // Update unread count if message is from user
+          if (newMessage.sender === 'user' && currentChat !== newMessage.chatId) {
+            setUnreadMessages((prev: UnreadMessageState) => ({
+              ...prev,
+              [newMessage.chatId]: (prev[newMessage.chatId] || 0) + 1
+            }));
+          }
+        });
+
+        console.log('Nutritionist subscription setup successful');
+      } catch (error) {
+        console.error('Error setting up nutritionist subscription:', error);
+      }
+    };
+
+    setupNutritionistSubscription();
+
+    return () => {
+      isSubscribed = false;
+      if (unsubscribe) {
+        console.log('Cleaning up nutritionist subscription');
+        unsubscribe();
+      }
+    };
+  }, [user]);
+
+  // Fetch existing messages and unread count for current chat
   useEffect(() => {
     const fetchMessages = async () => {
       if (!user || !currentChat) return;
       
       try {
         setLoading(true);
-        const chatMessages = await getChatMessagesAPI(currentChat);
+        console.log('Fetching messages for chat:', currentChat);
         
-        setMessages(prev => ({
+        const [chatMessages, unreadCount] = await Promise.all([
+          getChatMessages(currentChat),
+          getUnreadCount(
+            currentChat,
+            user.userType as 'user' | 'nutritionist'
+          )
+        ]);
+        
+        setMessages((prev: MessageState) => ({
           ...prev,
-          [currentChat]: chatMessages as Message[]
+          [currentChat]: chatMessages
         }));
 
-        // Reset unread count for current chat
-        setUnreadMessages(prev => ({
+        setUnreadMessages((prev: UnreadMessageState) => ({
           ...prev,
-          [currentChat]: 0
+          [currentChat]: unreadCount
         }));
+
+        // Mark messages as read when opening chat
+        for (const message of chatMessages) {
+          if (!message.read && message.sender !== user.userType) {
+            try {
+              await markMessageAsRead(message.$id);
+            } catch (error) {
+              console.error('Error marking message as read:', error);
+            }
+          }
+        }
       } catch (error) {
         console.error('Error fetching messages:', error);
       } finally {
@@ -133,74 +243,68 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     fetchMessages();
   }, [user, currentChat]);
 
-  const addMessage = async (nutritionistId: string, text: string) => {
-    if (!user) return;
+  const addMessage = async (targetId: string, text: string) => {
+    if (!user) throw new Error('User not authenticated');
 
-    const chatId = `${user.$id}-${nutritionistId}`;
+    // For nutritionist, targetId is userId
+    // For user, targetId is nutritionistId
+    const userId = user.userType === 'nutritionist' ? targetId : user.$id;
+    const nutritionistId = user.userType === 'nutritionist' ? user.$id : targetId;
+    const chatId = `${userId}-${nutritionistId}`;
+
+    console.log('Sending message:', {
+      userId,
+      nutritionistId,
+      chatId,
+      text,
+      senderType: user.userType
+    });
+
     const timestamp = new Date().toISOString();
     
     const tempId = `temp-${Date.now()}`;
-    // Tambahkan pesan ke state lokal untuk UX yang lebih responsif
     const tempMessage: Partial<Message> = {
       $id: tempId,
       chatId,
       text,
-      sender: 'user',
+      sender: user.userType,
       time: timestamp,
       read: false,
-      userId: user.$id,
+      userId,
       nutritionistId
     };
 
-    // Update state dengan pesan sementara
-    setMessages(prev => ({
+    // Optimistic update
+    setMessages((prev: MessageState) => ({
       ...prev,
       [chatId]: [...(prev[chatId] || []), tempMessage as Message]
     }));
 
     try {
-      // Kirim pesan ke server
-      const sentMessage = await sendMessageAPI({
-        userId: user.$id,
+      const sentMessage = await sendMessage({
+        userId,
         nutritionistId,
         text,
         chatId
-      });
+      }, user.userType);
 
-      // Update pesan temporary dengan response dari server
-      setMessages(prev => ({
+      // Update temporary message with server response
+      setMessages((prev: MessageState) => ({
         ...prev,
-        [chatId]: prev[chatId].map(msg => 
-          msg.$id === tempId ? sentMessage as Message : msg
+        [chatId]: prev[chatId].map((msg: Message) => 
+          msg.$id === tempId ? sentMessage : msg
         )
       }));
+
+      console.log('Message sent successfully:', sentMessage);
     } catch (error) {
       console.error('Error sending message:', error);
-      // Hapus pesan temporary jika pengiriman gagal
-      setMessages(prev => ({
+      // Remove temporary message if sending failed
+      setMessages((prev: MessageState) => ({
         ...prev,
-        [chatId]: prev[chatId].filter(msg => msg.$id !== tempId)
+        [chatId]: prev[chatId].filter((msg: Message) => msg.$id !== tempId)
       }));
       throw error;
-    }
-  };
-
-  const markMessageAsRead = async (messageId: string) => {
-    try {
-      await markMessageAsReadAPI(messageId);
-      
-      // Update local state
-      setMessages(prev => {
-        const updatedMessages = { ...prev };
-        Object.keys(updatedMessages).forEach(chatId => {
-          updatedMessages[chatId] = updatedMessages[chatId].map(msg => 
-            msg.$id === messageId ? { ...msg, read: true } : msg
-          );
-        });
-        return updatedMessages;
-      });
-    } catch (error) {
-      console.error('Error marking message as read:', error);
     }
   };
 
