@@ -45,9 +45,14 @@ export const useAppwrite = <T, P extends Record<string, string | number>>({
 
   useEffect(() => {
     if (!skip) {
-      fetchData(params);
+      fetchData(params).catch((err) => {
+        console.error("Error in useAppwrite effect:", err);
+        setLoading(false);
+      });
+    } else {
+      setLoading(false);
     }
-  }, []);
+  }, [skip, JSON.stringify(params)]);
 
   const refetch = async (newParams?: P) => await fetchData(newParams || params);
 

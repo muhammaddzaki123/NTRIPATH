@@ -1,6 +1,5 @@
-import { useGlobalContext } from '@/lib/global-provider';
+import { Article } from '@/constants/article';
 import { getArticleById } from '@/lib/appwrite';
-import { Article } from '@/types/article';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';

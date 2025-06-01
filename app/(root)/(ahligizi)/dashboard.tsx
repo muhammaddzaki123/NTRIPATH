@@ -1,5 +1,5 @@
+import { Message } from '@/constants/chat';
 import { getChatMessages, logoutNutritionist } from '@/lib/appwrite';
-import { Message } from '@/types/chat';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from 'react-native';

@@ -1,16 +1,3 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import {
-  getChatMessages,
-  getNutritionistChats,
-  getNutritionists,
-  getUnreadCount,
-  markMessageAsRead,
-  sendMessage,
-  subscribeToChat,
-  subscribeToNutritionistChats,
-  updateNutritionistStatus
-} from '../lib/chat-service';
-import { useGlobalContext } from '../lib/global-provider';
 import {
   ChatContextType,
   Message,
@@ -18,7 +5,21 @@ import {
   Nutritionist,
   UnreadMessageState,
   User
-} from '../types/chat';
+} from '@/constants//chat';
+import { useGlobalContext } from '@/lib/global-provider';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import {
+  getChatMessages,
+  getNutritionistChats,
+  getNutritionists,
+  getUnreadCount,
+  getUserDetails,
+  markMessageAsRead,
+  sendMessage,
+  subscribeToChat,
+  subscribeToNutritionistChats,
+  updateNutritionistStatus
+} from '@/lib/chat-service';
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
@@ -28,7 +29,57 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [currentChat, setCurrentChat] = useState<string | null>(null);
   const [unreadMessages, setUnreadMessages] = useState<UnreadMessageState>({});
   const [loading, setLoading] = useState(false);
+  const [userDetailsCache, setUserDetailsCache] = useState<Map<string, User>>(new Map());
   const { user } = useGlobalContext() as { user: User | null };
+
+  // Cache user details
+  const cacheUserDetails = useCallback(async (userId: string) => {
+    if (!userDetailsCache.has(userId)) {
+      const userDetails = await getUserDetails(userId);
+      if (userDetails) {
+        setUserDetailsCache(prev => new Map(prev).set(userId, userDetails));
+      }
+    }
+    return userDetailsCache.get(userId);
+  }, [userDetailsCache]);
+
+  // Update message with user details
+  const enrichMessageWithUserDetails = useCallback(async (message: Message): Promise<Message> => {
+    if (message.userDetails) return message;
+    
+    const userDetails = await cacheUserDetails(message.userId);
+    return {
+      ...message,
+      userDetails: userDetails || undefined
+    };
+  }, [cacheUserDetails]);
+
+  // Update messages helper
+  const updateMessages = useCallback(async (chatId: string, newMessage: Message) => {
+    const enrichedMessage = await enrichMessageWithUserDetails(newMessage);
+    
+    setMessages((prev: MessageState) => {
+      const chatMessages = prev[chatId] || [];
+      const messageExists = chatMessages.some((msg: Message) => msg.$id === enrichedMessage.$id);
+      
+      if (messageExists) {
+        const updatedMessages = chatMessages.map((msg: Message) =>
+          msg.$id === enrichedMessage.$id ? enrichedMessage : msg
+        );
+        return {
+          ...prev,
+          [chatId]: updatedMessages
+        };
+      }
+      
+      return {
+        ...prev,
+        [chatId]: [...chatMessages, enrichedMessage].sort(
+          (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()
+        )
+      };
+    });
+  }, [enrichMessageWithUserDetails]);
 
   // Fetch nutritionists list and setup status
   useEffect(() => {
@@ -48,7 +99,17 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           
           // Load all chats for nutritionist
           const chats = await getNutritionistChats(user.$id);
-          setMessages(chats);
+          
+          // Enrich all messages with user details
+          const enrichedChats: MessageState = {};
+          for (const [chatId, chatMessages] of Object.entries(chats)) {
+            const enrichedMessages = await Promise.all(
+              chatMessages.map(msg => enrichMessageWithUserDetails(msg))
+            );
+            enrichedChats[chatId] = enrichedMessages;
+          }
+          
+          setMessages(enrichedChats);
         }
       } catch (error) {
         console.error('Error fetching nutritionists:', error);
@@ -65,7 +126,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         updateNutritionistStatus(user.$id, 'offline').catch(console.error);
       }
     };
-  }, [user]);
+  }, [user, enrichMessageWithUserDetails]);
 
   // Subscribe to real-time messages for current chat
   useEffect(() => {
@@ -78,31 +139,10 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       try {
         console.log('Setting up subscription for chat:', currentChat);
         
-        unsubscribe = await subscribeToChat(currentChat, (newMessage: Message) => {
+        unsubscribe = await subscribeToChat(currentChat, async (newMessage: Message) => {
           if (!isSubscribed) return;
-
           console.log('Received message:', newMessage);
-          
-          setMessages((prev: MessageState) => {
-            const chatMessages = prev[newMessage.chatId] || [];
-            const messageExists = chatMessages.some((msg: Message) => msg.$id === newMessage.$id);
-            
-            if (messageExists) {
-              // Update existing message (e.g., read status)
-              return {
-                ...prev,
-                [newMessage.chatId]: chatMessages.map((msg: Message) =>
-                  msg.$id === newMessage.$id ? newMessage : msg
-                )
-              };
-            }
-            
-            // Add new message
-            return {
-              ...prev,
-              [newMessage.chatId]: [...chatMessages, newMessage]
-            };
-          });
+          await updateMessages(newMessage.chatId, newMessage);
 
           // Update unread count for messages from the other party
           if (user.userType === 'nutritionist' && newMessage.sender === 'user' ||
@@ -131,7 +171,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         unsubscribe();
       }
     };
-  }, [user, currentChat]);
+  }, [user, currentChat, updateMessages]);
 
   // Subscribe to all chats if user is a nutritionist
   useEffect(() => {
@@ -144,31 +184,10 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       try {
         console.log('Setting up nutritionist subscription');
         
-        unsubscribe = await subscribeToNutritionistChats(user.$id, (newMessage: Message) => {
+        unsubscribe = await subscribeToNutritionistChats(user.$id, async (newMessage: Message) => {
           if (!isSubscribed) return;
-
           console.log('Received message for nutritionist:', newMessage);
-          
-          setMessages((prev: MessageState) => {
-            const chatMessages = prev[newMessage.chatId] || [];
-            const messageExists = chatMessages.some((msg: Message) => msg.$id === newMessage.$id);
-            
-            if (messageExists) {
-              return {
-                ...prev,
-                [newMessage.chatId]: chatMessages.map((msg: Message) =>
-                  msg.$id === newMessage.$id ? newMessage : msg
-                )
-              };
-            }
-            
-            return {
-              ...prev,
-              [newMessage.chatId]: [...chatMessages, newMessage].sort(
-                (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()
-              )
-            };
-          });
+          await updateMessages(newMessage.chatId, newMessage);
 
           // Update unread count if message is from user
           if (newMessage.sender === 'user' && currentChat !== newMessage.chatId) {
@@ -194,7 +213,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         unsubscribe();
       }
     };
-  }, [user]);
+  }, [user, currentChat, updateMessages]);
 
   // Fetch existing messages and unread count for current chat
   useEffect(() => {
@@ -213,9 +232,14 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           )
         ]);
         
+        // Enrich messages with user details
+        const enrichedMessages = await Promise.all(
+          chatMessages.map(msg => enrichMessageWithUserDetails(msg))
+        );
+
         setMessages((prev: MessageState) => ({
           ...prev,
-          [currentChat]: chatMessages
+          [currentChat]: enrichedMessages
         }));
 
         setUnreadMessages((prev: UnreadMessageState) => ({
@@ -241,13 +265,11 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     };
 
     fetchMessages();
-  }, [user, currentChat]);
+  }, [user, currentChat, enrichMessageWithUserDetails]);
 
   const addMessage = async (targetId: string, text: string) => {
     if (!user) throw new Error('User not authenticated');
 
-    // For nutritionist, targetId is userId
-    // For user, targetId is nutritionistId
     const userId = user.userType === 'nutritionist' ? targetId : user.$id;
     const nutritionistId = user.userType === 'nutritionist' ? user.$id : targetId;
     const chatId = `${userId}-${nutritionistId}`;
@@ -274,10 +296,17 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       nutritionistId
     };
 
+    // Get user details for the temp message
+    const userDetails = await cacheUserDetails(userId);
+    const enrichedTempMessage = {
+      ...tempMessage,
+      userDetails
+    } as Message;
+
     // Optimistic update
     setMessages((prev: MessageState) => ({
       ...prev,
-      [chatId]: [...(prev[chatId] || []), tempMessage as Message]
+      [chatId]: [...(prev[chatId] || []), enrichedTempMessage]
     }));
 
     try {
@@ -288,15 +317,18 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         chatId
       }, user.userType);
 
+      // Enrich sent message with user details
+      const enrichedMessage = await enrichMessageWithUserDetails(sentMessage);
+
       // Update temporary message with server response
       setMessages((prev: MessageState) => ({
         ...prev,
         [chatId]: prev[chatId].map((msg: Message) => 
-          msg.$id === tempId ? sentMessage : msg
+          msg.$id === tempId ? enrichedMessage : msg
         )
       }));
 
-      console.log('Message sent successfully:', sentMessage);
+      console.log('Message sent successfully:', enrichedMessage);
     } catch (error) {
       console.error('Error sending message:', error);
       // Remove temporary message if sending failed

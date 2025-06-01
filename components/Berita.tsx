@@ -1,8 +1,7 @@
+import { Article } from '@/constants/article';
 import icons from '@/constants/icons';
-import images from '@/constants/images';
 import React from 'react';
 import { Image, Text, TouchableOpacity, View } from "react-native";
-import { Article } from '@/types/article';
 
 interface Props {
   item: Article;

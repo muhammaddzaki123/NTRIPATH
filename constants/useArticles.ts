@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { Article } from '@/constants/article';
 import { getArticles } from '@/lib/appwrite';
-import { Article } from '@/types/article';
+import { useEffect, useState } from 'react';
 
 interface UseArticlesResult {
   articles: Article[];

@@ -1,9 +1,9 @@
+import { Article } from '@/constants/article';
 import icons from '@/constants/icons';
 import images from '@/constants/images';
 import { useArticles } from '@/constants/useArticles';
 import { logout } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
-import { Article } from '@/types/article';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';

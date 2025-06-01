@@ -1,7 +1,7 @@
 import { Artikel } from '@/components/Berita';
 import Search from '@/components/Search';
+import { Article } from '@/constants/article';
 import { useArticles } from '@/constants/useArticles';
-import { Article } from '@/types/article';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
