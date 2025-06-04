@@ -224,7 +224,8 @@ export async function loginNutritionist(email: string, password: string) {
             userType: "nutritionist",
             specialization: nutritionist.specialization,
             status: "online",
-            lastSeen: new Date().toISOString()
+            lastSeen: new Date().toISOString(),
+            gender: nutritionist.gender || null,
           };
 
           console.log("Current user (nutritionist) set to:", currentUser);
