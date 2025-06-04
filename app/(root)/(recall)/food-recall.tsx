@@ -23,11 +23,11 @@ type MealsState = {
   [key in MealType]: MealData;
 };
 
-const FoodInputRow = ({ 
+const FoodInputRow = ({
   value,
   onChange,
   placeholder = "Nama makanan"
-}: { 
+}: {
   value: FoodInput;
   onChange: (data: FoodInput) => void;
   placeholder?: string;
@@ -37,7 +37,7 @@ const FoodInputRow = ({
       {/* Nama Makanan */}
       <View className="flex-1 w-[96px]">
         <TextInput
-          className="bg-white rounded-2xl px-4 py-3.5 text-base shadow-sm"
+          className="bg-white rounded-2xl px-4 py-3.5 text-base shadow-sm text-black" // Pastikan teks input juga hitam jika diperlukan
           style={{ elevation: 2 }}
           value={value.name}
           onChangeText={(text: string) => onChange({ ...value, name: text })}
@@ -49,7 +49,7 @@ const FoodInputRow = ({
       {/* Jumlah */}
       <View >
         <TextInput
-          className="bg-white rounded-2xl px-4 py-3.5 text-base text-center shadow-sm ml-1"
+          className="bg-white rounded-2xl px-4 py-3.5 text-base text-center shadow-sm ml-1 text-black" // Pastikan teks input juga hitam jika diperlukan
           style={{ elevation: 2 }}
           value={value.amount}
           onChangeText={(text: string) => onChange({ ...value, amount: text })}
@@ -62,31 +62,34 @@ const FoodInputRow = ({
       {/* URT Picker */}
       <View className="w-[130px]">
         <View className="bg-white rounded-2xl shadow-sm overflow-hidden ml-1"
-              style={{ elevation: 2 }}>
+          style={{ elevation: 2 }}>
           <Picker
             selectedValue={value.unit}
             onValueChange={(text: string) => onChange({ ...value, unit: text })}
-            style={{ 
+            style={{
               height: 48,
               width: '100%',
-              backgroundColor: 'white',
+              backgroundColor: 'white', // Background sudah putih
+              color: 'black', // Warna teks terpilih menjadi hitam
             }}
+            dropdownIconColor="black" // Warna panah dropdown menjadi hitam
           >
-            <Picker.Item 
-              label="Pilih URT" 
-              value="" 
+            <Picker.Item
+              label="Pilih URT"
+              value=""
               style={{
                 fontSize: 14,
-                color: '#9CA3AF'
+                color: 'black', // Teks placeholder menjadi hitam
               }}
             />
-            {urtOptions.map((unit: string) => 
-              <Picker.Item 
-                key={unit} 
-                label={unit} 
+            {urtOptions.map((unit: string) =>
+              <Picker.Item
+                key={unit}
+                label={unit}
                 value={unit}
                 style={{
-                  fontSize: 14
+                  fontSize: 14,
+                  color: 'black', // Teks item menjadi hitam
                 }}
               />
             )}
@@ -130,11 +133,11 @@ export default function FoodRecallScreen() {
       ...prev,
       [type]: {
         ...prev[type],
-        [category]: category === 'carbs' 
-          ? data 
-          : prev[type][category].map((item: FoodInput, i: number) => 
-              i === index ? data : item
-            )
+        [category]: category === 'carbs'
+          ? data
+          : prev[type][category].map((item: FoodInput, i: number) =>
+            i === index ? data : item
+          )
       }
     }));
   };
@@ -165,7 +168,7 @@ export default function FoodRecallScreen() {
 
       const restrictions = foodRestrictions[disease] || [];
       const warningFoods = allFoods.filter(food => {
-        const restriction = restrictions.find(r => 
+        const restriction = restrictions.find(r =>
           r.name.toLowerCase() === food.name.toLowerCase()
         );
         return restriction && parseInt(food.amount) > restriction.maxAmount;
@@ -176,7 +179,7 @@ export default function FoodRecallScreen() {
 
       router.push({
         pathname: '/warning',
-        params: { 
+        params: {
           warningFoods: JSON.stringify(warningFoods),
           name,
           age,
@@ -222,7 +225,7 @@ export default function FoodRecallScreen() {
             <View className="bg-white/10 rounded-2xl mb-4">
               <Text className="text-white text-2xl font-rubik-bold text-center">
                 {mealType === 'breakfast' ? 'Makan Pagi' :
-                 mealType === 'lunch' ? 'Makan Siang' : 'Makan Malam'}
+                  mealType === 'lunch' ? 'Makan Siang' : 'Makan Malam'}
               </Text>
             </View>
 
@@ -271,7 +274,7 @@ export default function FoodRecallScreen() {
             </View>
           </View>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             className="bg-white rounded-full py-4 px-6 mb-5 items-center shadow-lg"
             onPress={handleNext}
           >

@@ -58,19 +58,21 @@ export default function SignIn() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
+      {/* Bagian header atas dengan tombol back dan close */}
       <View className="flex-row items-center pt-5 border-b border-white pb-2 mb-4">
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={"black"} className='ml-2' />
+          <Ionicons name="arrow-back" size={24} color={"black"} className="ml-2" />
         </TouchableOpacity>
+        {/* Tombol close di kanan atas, pastikan warnanya kontras jika ingin terlihat */}
         <TouchableOpacity onPress={() => router.back()} className="ml-auto">
-          <Text className="text-3xl text-white mr-4">×</Text>
+          <Text className="text-3xl text-black mr-4">×</Text> 
+          {/* Ganti text-white menjadi text-black atau warna kontras lain jika latar header tidak selalu putih */}
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View className="flex-1 px-6 py-6">
-          {/* Header with Back Button */}
+          {/* Header with Logo */}
           <View className="flex-row items-center">
-            {/* Logo */}
             <View className="items-center mb-8 flex-1">
               <Image
                 source={images.logoawal}
@@ -85,7 +87,6 @@ export default function SignIn() {
             <Text className="text-base text-center uppercase font-rubik text-gray-600">
               Selamat datang Di
             </Text>
-
             <Text className="text-3xl font-rubik-bold text-gray-900 text-center mt-2">
               NUTRIPATH {"\n"}
             </Text>
@@ -100,6 +101,10 @@ export default function SignIn() {
               keyboardType="email-address"
               autoCapitalize="none"
               className="border border-gray-300 rounded-md px-4 py-3 text-base bg-white"
+              // --- TAMBAHAN UNTUK DEBUGGING ---
+              placeholderTextColor="grey" // Warna placeholder eksplisit
+              style={{ color: 'black' }}    // Warna teks input eksplisit
+              // --- AKHIR TAMBAHAN ---
             />
             <TextInput
               placeholder="Password"
@@ -107,17 +112,47 @@ export default function SignIn() {
               onChangeText={setPassword}
               secureTextEntry
               className="border border-gray-300 rounded-md px-4 py-3 text-base mt-3 bg-white"
+              // --- TAMBAHAN UNTUK DEBUGGING ---
+              placeholderTextColor="grey" // Warna placeholder eksplisit
+              style={{ color: 'black' }}    // Warna teks input eksplisit (untuk titik-titik password)
+              // --- AKHIR TAMBAHAN ---
             />
             <View className="mt-3">
               <Text className="text-gray-500 text-sm mb-1 ml-1">Tipe Pengguna</Text>
-              <View className="border border-gray-300 rounded-md bg-white">
+              <View 
+                className="border border-gray-300 rounded-md bg-white"
+                // --- TAMBAHAN UNTUK DEBUGGING ---
+                // Anda bisa juga menambahkan style={{ borderColor: 'red', borderWidth: 1 }} di sini untuk memastikan View ini terlihat
+                // --- AKHIR TAMBAHAN ---
+              >
                 <Picker
                   selectedValue={userType}
                   onValueChange={(itemValue: string) => setUserType(itemValue)}
-                  style={{ height: 50 }}
+                  style={{ 
+                    height: 50, 
+                    // --- TAMBAHAN UNTUK DEBUGGING ---
+                    color: 'black', // Warna teks untuk item yang terpilih
+                    // backgroundColor: 'lightyellow' // Opsional: Warna latar Picker untuk tes
+                    // --- AKHIR TAMBAHAN ---
+                  }}
+                  // --- TAMBAHAN UNTUK DEBUGGING ---
+                  dropdownIconColor="grey" // Warna panah dropdown
+                  // --- AKHIR TAMBAHAN ---
                 >
-                  <Picker.Item label="User" value="user" />
-                  <Picker.Item label="Ahli Gizi" value="nutritionist" />
+                  <Picker.Item 
+                    label="User" 
+                    value="user" 
+                    // --- TAMBAHAN UNTUK DEBUGGING ---
+                    color="black" // Warna teks item di dropdown
+                    // --- AKHIR TAMBAHAN ---
+                  />
+                  <Picker.Item 
+                    label="Ahli Gizi" 
+                    value="nutritionist" 
+                    // --- TAMBAHAN UNTUK DEBUGGING ---
+                    color="black" // Warna teks item di dropdown
+                    // --- AKHIR TAMBAHAN ---
+                  />
                 </Picker>
               </View>
             </View>
@@ -135,3 +170,4 @@ export default function SignIn() {
     </SafeAreaView>
   );
 }
+
