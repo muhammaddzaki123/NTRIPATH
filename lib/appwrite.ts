@@ -13,12 +13,13 @@ export const config = {
   endpoint: process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT,
   projectId: process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID,
   databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID,
-  artikelCollectionId:process.env.EXPO_PUBLIC_APPWRITE_ARTIKEL_COLLECTION_ID,
+  artikelCollectionId: process.env.EXPO_PUBLIC_APPWRITE_ARTIKEL_COLLECTION_ID,
   foodRecallCollectionId: process.env.EXPO_PUBLIC_APPWRITE_FOOD_RECALL_COLLECTION_ID,
   usersProfileCollectionId: process.env.EXPO_PUBLIC_APPWRITE_USERS_PROFILE_COLLECTION_ID,
   ahligiziCollectionId: process.env.EXPO_PUBLIC_APPWRITE_AHLIGIZI_COLLECTION_ID,
   chatMessagesCollectionId: process.env.EXPO_PUBLIC_APPWRITE_CHAT_MESSAGES_COLLECTION_ID,
   nutritionistChatCollectionId: process.env.EXPO_PUBLIC_APPWRITE_NUTRITIONIST_CHAT_COLLECTION_ID,
+  storageBucketId: process.env.EXPO_PUBLIC_APPWRITE_STORAGE_BUCKET_ID || 'default',
 };
 
 export const client = new Client();
@@ -37,15 +38,49 @@ let currentUser: any = null;
 
 export async function getCurrentUser() {
   try {
-    if (currentUser) {
-      console.log("Returning current user:", currentUser);
-      return currentUser;
+    if (!currentUser) {
+      console.log("No current user found");
+      return null;
     }
-    console.log("No current user found");
-    return null;
+
+    console.log("Fetching fresh data for user:", currentUser);
+
+    // Fetch fresh user data from database
+    let freshUserData;
+    if (currentUser.userType === 'nutritionist') {
+      const response = await databases.getDocument(
+        config.databaseId!,
+        config.ahligiziCollectionId!,
+        currentUser.$id
+      );
+      console.log("Nutritionist data from DB:", response);
+      freshUserData = {
+        ...currentUser,
+        avatar: response.avatar || currentUser.avatar,
+        specialization: response.specialization
+      };
+    } else {
+      const response = await databases.getDocument(
+        config.databaseId!,
+        config.usersProfileCollectionId!,
+        currentUser.$id
+      );
+      console.log("User data from DB:", response);
+      freshUserData = {
+        ...currentUser,
+        avatar: response.avatar || currentUser.avatar,
+        disease: response.disease || null // Include disease information for users
+      };
+    }
+
+    // Update currentUser with fresh data
+    currentUser = freshUserData;
+    console.log("Returning updated user:", currentUser);
+    return currentUser;
   } catch (error) {
     console.log("Error getting current user:", error);
-    return null;
+    console.error(error);
+    return currentUser; // Return existing data if fetch fails
   }
 }
 
@@ -95,16 +130,22 @@ export async function loginUser(email: string, password: string) {
             );
           }
 
-          // Simpan data user yang login
+          // Simpan data user yang login dengan informasi lengkap
           currentUser = {
             $id: user.$id,
             name: user.name || email.split('@')[0],
             email: user.email,
-            avatar: avatar.getInitials(user.name || email.split('@')[0]).toString(),
-            userType: "user"
+            avatar: user.avatar || avatar.getInitials(user.name || email.split('@')[0]).toString(),
+            userType: "user",
+            disease: user.disease || null,
+            height: user.height || null,
+            weight: user.weight || null,
+            age: user.age || null,
+            gender: user.gender || null,
+            lastSeen: new Date().toISOString()
           };
 
-          console.log("Current user set to:", currentUser);
+          console.log("Setting current user with complete data:", currentUser);
         } catch (updateError) {
           console.error("Gagal update user type:", updateError);
         }
@@ -174,15 +215,16 @@ export async function loginNutritionist(email: string, password: string) {
             updateData
           );
 
-          // Simpan data nutritionist yang login
+          // Simpan data nutritionist yang login dengan informasi lengkap
           currentUser = {
             $id: nutritionist.$id,
             name: nutritionist.name || email.split('@')[0],
             email: nutritionist.email,
-            avatar: avatar.getInitials(nutritionist.name || email.split('@')[0]).toString(),
+            avatar: nutritionist.avatar || avatar.getInitials(nutritionist.name || email.split('@')[0]).toString(),
             userType: "nutritionist",
             specialization: nutritionist.specialization,
-            status: "online"
+            status: "online",
+            lastSeen: new Date().toISOString()
           };
 
           console.log("Current user (nutritionist) set to:", currentUser);
@@ -428,6 +470,38 @@ export const getChatMessages = async (chatId: string): Promise<Message[]> => {
     })) as Message[];
   } catch (error) {
     console.error('Error getting chat messages:', error);
+    throw error;
+  }
+}
+
+export async function updateUserProfile(userId: string, data: {
+  name?: string;
+  age?: string;
+  gender?: string;
+  disease?: string;
+}) {
+  try {
+    console.log("Updating user profile:", { userId, data });
+    
+    const response = await databases.updateDocument(
+      config.databaseId!,
+      config.usersProfileCollectionId!,
+      userId,
+      data
+    );
+
+    // Update currentUser with new data
+    if (currentUser && currentUser.$id === userId) {
+      currentUser = {
+        ...currentUser,
+        ...data
+      };
+    }
+
+    console.log("User profile updated successfully:", response);
+    return response;
+  } catch (error) {
+    console.error("Error updating user profile:", error);
     throw error;
   }
 }
