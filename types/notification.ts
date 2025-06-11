@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Models } from 'react-native-appwrite';
 import { Article } from '../constants/article';
 import { Nutritionist } from '../constants/chat';
@@ -42,10 +43,36 @@ export interface NotificationParams {
 export interface NotificationItemProps {
   id: string;
   type: NotificationType;
+=======
+import { Nutritionist } from '../constants/chat';
+
+export interface Notification {
+  id: string;
+  type: 'chat' | 'article' | 'recall';
+  title: string;
+  description: string;
+  timestamp: string;
+  data?: {
+    chatId?: string;
+    articleId?: string;
+    nutritionistId?: string;
+  };
+}
+
+export interface NotificationParams {
+  unreadMessages: { [key: string]: number };
+  nutritionists: Nutritionist[];
+}
+
+export interface NotificationItemProps {
+  id: string;
+  type: 'chat' | 'article' | 'recall';
+>>>>>>> 825a3fa33b5dd7ce1a4b6db6c93e3960a4634e26
   title: string;
   description: string;
   timestamp: string;
   onPress: () => void;
+<<<<<<< HEAD
   onDelete: () => void;
   read?: boolean;
 }
@@ -70,3 +97,6 @@ export interface NotificationDocument extends Models.Document {
   read: boolean;
   data?: NotificationData;
 }
+=======
+}
+>>>>>>> 825a3fa33b5dd7ce1a4b6db6c93e3960a4634e26

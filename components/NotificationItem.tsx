@@ -1,8 +1,14 @@
 import { FontAwesome } from '@expo/vector-icons';
+<<<<<<< HEAD
 import React, { useRef } from 'react';
 import { Animated, Text, TouchableOpacity, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { formatTimestamp } from '../utils/date';
+=======
+import { format } from 'date-fns';
+import React from 'react';
+import { Text, TouchableOpacity, View } from 'react-native';
+>>>>>>> 825a3fa33b5dd7ce1a4b6db6c93e3960a4634e26
 
 export interface NotificationItemProps {
   id: string;
@@ -11,8 +17,11 @@ export interface NotificationItemProps {
   description: string;
   timestamp: string;
   onPress: () => void;
+<<<<<<< HEAD
   onDelete: () => void;
   read?: boolean;
+=======
+>>>>>>> 825a3fa33b5dd7ce1a4b6db6c93e3960a4634e26
 }
 
 const getIcon = (type: 'chat' | 'article' | 'recall'): { name: "comment" | "newspaper-o" | "bell"; color: string } => {
@@ -34,6 +43,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
   description,
   timestamp,
   onPress,
+<<<<<<< HEAD
   onDelete,
   read = false,
 }) => {
@@ -109,6 +119,37 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
         </TouchableOpacity>
       </Animated.View>
     </Swipeable>
+=======
+}) => {
+  const formattedTime = format(new Date(timestamp), 'HH:mm, dd MMM yyyy');
+  const icon = getIcon(type);
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      className="flex-row items-center bg-white rounded-xl p-4 my-1 mx-2 shadow-sm border border-gray-100"
+    >
+      <View className="mr-4 w-10 h-10 rounded-full bg-gray-50 items-center justify-center">
+        <FontAwesome 
+          name={icon.name} 
+          size={20} 
+          color={icon.color}
+        />
+      </View>
+      
+      <View className="flex-1">
+        <Text className="font-rubik-medium text-base text-gray-900">
+          {title}
+        </Text>
+        <Text className="font-rubik text-sm text-gray-600 mt-1">
+          {description}
+        </Text>
+        <Text className="font-rubik text-xs text-gray-400 mt-1">
+          {formattedTime}
+        </Text>
+      </View>
+    </TouchableOpacity>
+>>>>>>> 825a3fa33b5dd7ce1a4b6db6c93e3960a4634e26
   );
 };
 
