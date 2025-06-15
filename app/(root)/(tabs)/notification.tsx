@@ -1,25 +1,24 @@
-<<<<<<< HEAD
 /// <reference lib="dom" />
-import { useChat } from '@/components/ChatContext';
-import NotificationItem from '@/components/NotificationItem';
-import { useGlobalContext } from '@/lib/global-provider';
-import { deleteNotification, getNotifications, markAllAsRead, markAsRead } from '@/lib/notification-service';
-import type { Notification } from '@/types/notification';
-import { formatTimestamp } from '@/utils/date';
 import { Redirect, Stack, useRouter } from 'expo-router';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    FlatList,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useChat } from '../../../components/ChatContext';
+import NotificationItem from '../../../components/NotificationItem';
+import { useGlobalContext } from '../../../lib/global-provider';
+import { deleteNotification, getNotifications, markAllAsRead, markAsRead } from '../../../lib/notification-service';
+import type { Notification } from '../../../types/notification';
+import { formatTimestamp } from '../../../utils/date';
 
 const PAGE_SIZE = 10;
 
@@ -145,36 +144,39 @@ export default function NotificationScreen(): ReactElement {
               ? JSON.parse(notification.data) 
               : notification.data;
 
+            const chatId = notifData?.chatId as string;
+
             // Validasi data yang diperlukan
-            if (!notifData?.chatId) {
+            if (!chatId) {
               if (Platform.OS !== 'web') {
                 console.warn('Chat ID tidak ditemukan dalam notifikasi:', notification.data);
               }
               break;
             }
 
-            // Extract chatId from notification
-            const chatId = notifData?.chatId;
-            if (!chatId) {
-              if (Platform.OS !== 'web') {
-                console.warn('[Chat] Failed:', {
-                  reason: 'missing_chat_id',
-                  notification: notification.$id
-                });
-              }
-              break;
-            }
+            // --- PERBAIKAN DIMULAI DI SINI ---
+            // 1. Pisahkan string chatId untuk mendapatkan ID user dan ahli gizi
+            const ids = chatId.split('-');
+            const userIdFromChat = ids[0];
+            const nutritionistIdFromChat = ids[1];
 
+            // 2. Tentukan ID partner chat berdasarkan tipe user yang sedang login
+            const partnerId = user.userType === 'nutritionist' 
+                ? userIdFromChat 
+                : nutritionistIdFromChat;
+            
             // Debug log
             if (Platform.OS !== 'web') {
-              console.log('[Chat] Opening:', chatId);
+              console.log(`[Chat] Opening: Navigating to chat with partner ID: ${partnerId}`);
             }
 
-            // Route to chat
+            // 3. Gunakan partnerId yang benar untuk navigasi
             router.push({
               pathname: "/(root)/(konsultasi)/chat/[id]",
-              params: { id: chatId }
+              params: { id: partnerId } // Menggunakan ID partner yang benar
             });
+            // --- PERBAIKAN SELESAI ---
+
           } catch (err) {
             if (Platform.OS !== 'web') {
               console.warn('Chat routing error:', err);
@@ -302,94 +304,6 @@ export default function NotificationScreen(): ReactElement {
         </ScrollView>
       </View>
 
-=======
-import { Redirect, Stack, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useChat } from '../../../components/ChatContext';
-import NotificationItem from '../../../components/NotificationItem';
-import { useGlobalContext } from '../../../lib/global-provider';
-import { getNotifications } from '../../../lib/notification-service';
-import { type Notification } from '../../../types/notification';
-
-export default function NotificationScreen() {
-  const router = useRouter();
-  const { unreadMessages, nutritionists } = useChat();
-  const { user } = useGlobalContext();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const fetchNotifications = async () => {
-    try {
-      const notifs = await getNotifications({
-        unreadMessages,
-        nutritionists
-      });
-      setNotifications(notifs);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchNotifications();
-  }, [unreadMessages, nutritionists]);
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchNotifications();
-  };
-
-  const handleNotificationPress = (notification: Notification) => {
-    switch (notification.type) {
-      case 'chat':
-        if (notification.data?.chatId) {
-          router.push(`/chat/${notification.data.chatId}`);
-        }
-        break;
-      case 'article':
-        if (notification.data?.articleId) {
-          router.push(`/article/${notification.data.articleId}`);
-        }
-        break;
-      case 'recall':
-        router.push('/recall');
-        break;
-    }
-  };
-
-  // Redirect if not logged in
-  if (!user) {
-    return <Redirect href="/sign-in" />;
-  }
-
-  if (loading) {
-    return (
-      <View className="flex-1 justify-center items-center bg-gray-50">
-        <ActivityIndicator size="large" color="#1CD6CE" />
-      </View>
-    );
-  }
-
-  return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <Stack.Screen 
-        options={{
-          headerShown: false
-        }}
-      />
-      <View className="px-4 py-4 bg-white border-b border-gray-200">
-        <Text className="text-2xl font-rubik-bold text-gray-900">
-          Notifikasi
-        </Text>
-      </View>
-
->>>>>>> 825a3fa33b5dd7ce1a4b6db6c93e3960a4634e26
       {notifications.length === 0 ? (
         <View className="flex-1 justify-center items-center p-4">
           <Text className="text-gray-500 text-center font-rubik">
@@ -398,7 +312,6 @@ export default function NotificationScreen() {
         </View>
       ) : (
         <FlatList
-<<<<<<< HEAD
           data={groupedData}
           keyExtractor={(item: NotificationGroup) => item.date}
           renderItem={({ item }: { item: NotificationGroup }) => (
@@ -420,19 +333,6 @@ export default function NotificationScreen() {
                 />
               ))}
             </View>
-=======
-          data={notifications}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <NotificationItem
-              id={item.id}
-              type={item.type}
-              title={item.title}
-              description={item.description}
-              timestamp={item.timestamp}
-              onPress={() => handleNotificationPress(item)}
-            />
->>>>>>> 825a3fa33b5dd7ce1a4b6db6c93e3960a4634e26
           )}
           refreshControl={
             <RefreshControl
@@ -442,13 +342,9 @@ export default function NotificationScreen() {
               tintColor="#1CD6CE"
             />
           }
-<<<<<<< HEAD
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           contentContainerStyle={notifications.length === 0 ? { flex: 1 } : undefined}
-=======
-          contentContainerStyle={notifications.length === 0 && { flex: 1 }}
->>>>>>> 825a3fa33b5dd7ce1a4b6db6c93e3960a4634e26
           className="flex-1"
         />
       )}
