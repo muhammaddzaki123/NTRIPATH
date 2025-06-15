@@ -4,7 +4,7 @@ import { Picker } from '@react-native-picker/picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { foodRestrictions, urtOptions } from '../../../constants/food-restrictions';
+import { foodRestrictions, urtOptions } from '@/constants/food-restrictions';
 
 // Update tipe data untuk menyertakan waktu makan
 type FoodInput = {
