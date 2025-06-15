@@ -9,9 +9,10 @@ export interface FoodInput {
 }
 
 export interface MealData {
-  carbs: FoodInput;
+  carbs: FoodInput[];
   others: FoodInput[];
   snacks: FoodInput[];
+  mealTime?: string | null;
 }
 
 export interface RecallData {
@@ -58,7 +59,7 @@ interface RecallDocument {
 // Save food recall data to database with enhanced notification
 export const saveFoodRecall = async (data: Omit<RecallData, 'createdAt'>) => {
   try {
-    console.log('Saving food record data:', data);
+    console.log('Saving food recall data:', data);
     
     // Stringify objects before saving
     const documentData = {
@@ -101,10 +102,10 @@ export const saveFoodRecall = async (data: Omit<RecallData, 'createdAt'>) => {
       );
     }
 
-    console.log('Food record data saved successfully:', response);
+    console.log('Food recall data saved successfully:', response);
     return response;
   } catch (error) {
-    console.error('Error saving food record data:', error);
+    console.error('Error saving food recall data:', error);
     throw error;
   }
 };
@@ -122,46 +123,55 @@ export const shareFoodRecallInChat = async (
     const recall = await getFoodRecallById(recallId);
     
     // Format the recall data as a message
-    const formatMeal = (meal: MealData) => {
+const formatMeal = (meal: MealData) => {
       const foods = [];
-      if (meal.carbs.name) {
-        foods.push(`Karbohidrat: ${meal.carbs.name} (${meal.carbs.amount} ${meal.carbs.unit})`);
+      
+      // Add meal time if available
+      if (meal.mealTime) {
+        foods.push(`⏰ Waktu: ${meal.mealTime}`);
       }
-      const otherFoods = meal.others.filter(f => f.name).map(f => 
-        `- ${f.name} (${f.amount} ${f.unit})`
+
+      // Add carbs
+      // Process each type of food
+      const carbFoods = meal.carbs.filter(f => f.name).map(f =>
+        `🍚 Karbohidrat: ${f.name} (${f.amount} ${f.unit})`
       );
+      
+      const otherFoods = meal.others.filter(f => f.name).map(f => 
+        `🍖 Lauk: ${f.name} (${f.amount} ${f.unit})`
+      );
+
       const snackFoods = meal.snacks.filter(f => f.name).map(f => 
-        `- ${f.name} (${f.amount} ${f.unit})`
+        `🍎 Selingan: ${f.name} (${f.amount} ${f.unit})`
       );
       
       return [
         ...foods,
-        otherFoods.length ? '\nLauk Pauk:' : '',
+        ...carbFoods,
         ...otherFoods,
-        snackFoods.length ? '\nSelingan:' : '',
         ...snackFoods
       ].join('\n');
     };
 
     const recallSummary = `
-Food Recall Data:
-Nama: ${recall.name}
-Usia: ${recall.age}
-Jenis Kelamin: ${recall.gender}
-Riwayat Penyakit: ${recall.disease}
+📋 Food Recall Data:
+👤 Nama: ${recall.name}
+📅 Usia: ${recall.age}
+⚧ Jenis Kelamin: ${recall.gender}
+🏥 Riwayat Penyakit: ${recall.disease}
 
-=== Makan Pagi ===
+🌅 === MAKAN PAGI ===
 ${formatMeal(recall.breakfast)}
 
-=== Makan Siang ===
+☀️ === MAKAN SIANG ===
 ${formatMeal(recall.lunch)}
 
-=== Makan Malam ===
+🌙 === MAKAN MALAM ===
 ${formatMeal(recall.dinner)}
 
-${recall.warningFoods.length ? `\n⚠️ Makanan yang Melebihi Batas:
+${recall.warningFoods.length ? `\n⚠️ PERINGATAN - Makanan yang Melebihi Batas:
 ${recall.warningFoods.map((food: FoodInput) => 
-  `- ${food.name}: ${food.amount} ${food.unit}`
+  `❗ ${food.name}: ${food.amount} ${food.unit}`
 ).join('\n')}` : ''}
     `.trim();
 
@@ -188,7 +198,7 @@ ${recall.warningFoods.map((food: FoodInput) =>
       userId,
       nutritionistId,
       userName,
-      'Food Record Data dibagikan untuk direview',
+      'Food Recall Data dibagikan untuk direview',
       chatId,
       true,
       true
@@ -221,7 +231,7 @@ ${recall.warningFoods.map((food: FoodInput) =>
 
     return message;
   } catch (error) {
-    console.error('Error sharing food record in chat:', error);
+    console.error('Error sharing food recall in chat:', error);
     throw error;
   }
 };
@@ -270,7 +280,7 @@ export const getUserFoodRecalls = async (userId: string) => {
 
     return recalls;
   } catch (error) {
-    console.error('Error getting user food records:', error);
+    console.error('Error getting user food recalls:', error);
     throw error;
   }
 };
@@ -293,7 +303,7 @@ export const getFoodRecallById = async (recallId: string) => {
       warningFoods: JSON.parse(response.warningFoods)
     };
   } catch (error) {
-    console.error('Error getting food record:', error);
+    console.error('Error getting food recall:', error);
     throw error;
   }
 };
@@ -332,7 +342,7 @@ export const updateRecallStatus = async (
 
     return true;
   } catch (error) {
-    console.error('Error updating food record status:', error);
+    console.error('Error updating recall status:', error);
     throw error;
   }
 };

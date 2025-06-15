@@ -1,8 +1,8 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getNutritionists } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import { saveFoodRecall, shareFoodRecallInChat } from '@/lib/recall-service';
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, SafeAreaView, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 type FoodWarning = {
@@ -74,8 +74,8 @@ export default function WarningScreen() {
         router.push('/konsultasi');
       }
     } catch (error) {
-      console.error('Error saving food record data:', error);
-      Alert.alert('Error', 'Gagal menyimpan data food record');
+      console.error('Error saving Food Record data:', error);
+      Alert.alert('Error', 'Gagal menyimpan data Food Record');
     }
   };
 
@@ -84,11 +84,13 @@ export default function WarningScreen() {
       <View className="flex-1 bg-primary-500 rounded-xl mt-5 mb-10" >
         {/* Header */}
         <View className="flex-row items-center pt-5 border-b border-white pb-2 mb-6">
+          {/* Tombol Panah: Kembali ke halaman sebelumnya */}
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="white" className="ml-2" />
           </TouchableOpacity>
           <Text className="text-white text-xl font-rubik-bold ml-4">PERINGATAN ASUPAN</Text>
-          <TouchableOpacity onPress={() => router.back()} className="ml-auto">
+          {/* Tombol Silang: Kembali ke halaman utama */}
+          <TouchableOpacity onPress={() => router.replace('/')} className="ml-auto">
             <Text className="text-3xl text-white mr-4">×</Text>
           </TouchableOpacity>
         </View>

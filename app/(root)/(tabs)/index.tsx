@@ -186,7 +186,7 @@ const Home = () => {
                   className="size-12"
                 />
               </View>
-              <Text className="text-center mt-1 text-xs">FOOD RECORD</Text>
+              <Text className="text-center mt-1 text-xs">Food Record</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
