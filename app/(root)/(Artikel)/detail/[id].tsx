@@ -1,3 +1,5 @@
+// app/(root)/(Artikel)/detail/[id].tsx
+
 import { Article } from '@/constants/article';
 import { getArticleById } from '@/lib/appwrite';
 import { Ionicons } from '@expo/vector-icons';

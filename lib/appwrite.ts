@@ -4,10 +4,12 @@ import {
   Avatars,
   Client,
   Databases,
+  Models,
   Query,
   Storage
 } from "react-native-appwrite";
 
+// --- KONFIGURASI APPWRITE ---
 export const config = {
   platform: "com.poltekes.nutripath",
   endpoint: process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT,
@@ -21,8 +23,15 @@ export const config = {
   nutritionistChatCollectionId: process.env.EXPO_PUBLIC_APPWRITE_NUTRITIONIST_CHAT_COLLECTION_ID,
   storageBucketId: process.env.EXPO_PUBLIC_APPWRITE_STORAGE_BUCKET_ID || 'default',
   notificationsCollectionId: process.env.EXPO_PUBLIC_APPWRITE_NOTIFICATION_COLLECTION_ID,
+  diseaseInformationCollectionId:process.env.EXPO_PUBLIC_APPWRITE_DIASES_INFORMATION_COLLECTION_ID,
+
+
+  loginlogCollectionId:process.env.EXPO_PUBLIC_APPWRITE_LOGINLOG_COLLECTION_ID,
+  loginlogFunctionId:process.env.EXPO_PUBLIC_APPWRITE_LOGINLOG_FUNCTION_ID,
+
 };
 
+// --- INISIALISASI KLIEN ---
 export const client = new Client();
 client
   .setEndpoint(config.endpoint!)
@@ -34,289 +43,106 @@ export const account = new Account(client);
 export const databases = new Databases(client);
 export const storage = new Storage(client);
 
-// Simpan data user yang sedang login
-let currentUser: any = null;
+// =================================================================
+// LAYANAN OTENTIKASI PENGGUNA (USER & AHLI GIZI) - PERBAIKAN
+// =================================================================
 
-// Fungsi baru untuk memperbarui status pengguna
-export async function updateUserStatus(userId: string, status: 'online' | 'offline') {
-    try {
-        await databases.updateDocument(
-            config.databaseId!,
-            config.usersProfileCollectionId!,
-            userId,
-            {
-                status,
-                lastSeen: new Date().toISOString()
-            }
-        );
-    } catch (error) {
-        console.error('Error updating user status:', error);
-    }
-}
+type UserProfile = Models.Document & {
+  userType: 'user' | 'nutritionist';
+  name: string;
+  email: string;
+  avatar: string;
+  disease?: 'hipertensi' | 'diabetes_melitus' | 'kanker';
+  specialization?: 'hipertensi' | 'diabetes_melitus' | 'kanker';
+  age?: string;
+  gender?: string;
+};
 
+async function updateUserStatus(userId: string, userType: 'user' | 'nutritionist', status: 'online' | 'offline'): Promise<void> {
+  const collectionId = userType === 'user'
+    ? config.usersProfileCollectionId!
+    : config.ahligiziCollectionId!;
 
-export async function getCurrentUser() {
-  try {
-    if (!currentUser) {
-      console.log("No current user found");
-      return null;
-    }
-
-    console.log("Fetching fresh data for user:", currentUser);
-
-    // Fetch fresh user data from database
-    let freshUserData;
-    if (currentUser.userType === 'nutritionist') {
-      const response = await databases.getDocument(
-        config.databaseId!,
-        config.ahligiziCollectionId!,
-        currentUser.$id
-      );
-      console.log("Nutritionist data from DB:", response);
-      freshUserData = {
-        ...currentUser,
-        avatar: response.avatar || currentUser.avatar,
-        specialization: response.specialization,
-        status: response.status,
-        lastSeen: response.lastSeen,
-      };
-    } else {
-      const response = await databases.getDocument(
-        config.databaseId!,
-        config.usersProfileCollectionId!,
-        currentUser.$id
-      );
-      console.log("User data from DB:", response);
-      freshUserData = {
-        ...currentUser,
-        avatar: response.avatar || currentUser.avatar,
-        disease: response.disease || null, // Include disease information for users
-        status: response.status, // Ambil status pengguna
-        lastSeen: response.lastSeen, // Ambil lastSeen pengguna
-      };
-    }
-
-    // Update currentUser with fresh data
-    currentUser = freshUserData;
-    console.log("Returning updated user:", currentUser);
-    return currentUser;
-  } catch (error) {
-    console.log("Error getting current user:", error);
-    console.error(error);
-    return currentUser; // Return existing data if fetch fails
-  }
-}
-
-export async function loginUser(email: string, password: string) {
-  try {
-    console.log("Mencoba login dengan email:", email);
-    
-    const users = await databases.listDocuments(
-      config.databaseId!,
-      config.usersProfileCollectionId!,
-      [Query.equal("email", email)]
-    );
-
-    console.log("Query result:", {
-      totalUsers: users.documents.length,
-      firstUser: users.documents[0] ? {
-        email: users.documents[0].email,
-        hasPassword: !!users.documents[0].password,
-        currentUserType: users.documents[0].userType
-      } : null
-    });
-
-    if (users.documents.length === 1) {
-      const user = users.documents[0];
-      
-      const inputPass = String(password).trim();
-      const storedPass = user.password ? String(user.password).trim() : '';
-      console.log("Password comparison:", {
-        inputLength: inputPass.length,
-        storedLength: storedPass.length,
-        isMatch: inputPass === storedPass
-      });
-
-      if (storedPass && inputPass === storedPass) {
-        console.log("Login berhasil untuk user:", user.email);
-
-        try {
-          // Perbarui status menjadi online
-          await updateUserStatus(user.$id, 'online');
-          
-          // Simpan data user yang login dengan informasi lengkap
-          currentUser = {
-            $id: user.$id,
-            name: user.name || email.split('@')[0],
-            email: user.email,
-            avatar: user.avatar || avatar.getInitials(user.name || email.split('@')[0]).toString(),
-            userType: "user",
-            disease: user.disease || null,
-            height: user.height || null,
-            weight: user.weight || null,
-            age: user.age || null,
-            gender: user.gender || null,
-            status: 'online', // Tambahkan status
-            lastSeen: new Date().toISOString()
-          };
-
-          console.log("Setting current user with complete data:", currentUser);
-        } catch (updateError) {
-          console.error("Gagal update user type:", updateError);
-        }
-
-        return true;
-      } else {
-        console.log("Password tidak cocok");
-        throw new Error("Email atau password salah");
-      }
-    } else {
-      console.log("User tidak ditemukan");
-      throw new Error("Email atau password salah");
-    }
-  } catch (error) {
-    console.error("Login user error:", error);
-    return false;
-  }
-}
-
-export async function loginNutritionist(email: string, password: string) {
-  try {
-    console.log("Mencoba login ahli gizi dengan email:", email);
-    
-    const nutritionists = await databases.listDocuments(
-      config.databaseId!,
-      config.ahligiziCollectionId!,
-      [Query.equal("email", email)]
-    );
-
-    console.log("Query result ahli gizi:", {
-      totalFound: nutritionists.documents.length,
-      firstNutritionist: nutritionists.documents[0] ? {
-        email: nutritionists.documents[0].email,
-        hasPassword: !!nutritionists.documents[0].password,
-        currentUserType: nutritionists.documents[0].userType
-      } : null
-    });
-
-    if (nutritionists.documents.length === 1) {
-      const nutritionist = nutritionists.documents[0];
-      
-      const inputPass = String(password).trim();
-      const storedPass = nutritionist.password ? String(nutritionist.password).trim() : '';
-      console.log("Password comparison ahli gizi:", {
-        inputLength: inputPass.length,
-        storedLength: storedPass.length,
-        isMatch: inputPass === storedPass
-      });
-
-      if (storedPass && inputPass === storedPass) {
-        console.log("Login berhasil untuk ahli gizi:", nutritionist.email);
-        
-        const updateData: any = {
-          status: "online",
-          lastSeen: new Date().toISOString()
-        };
-
-        if (nutritionist.userType !== "nutritionist") {
-          updateData.userType = "nutritionist";
-        }
-
-        try {
-          await databases.updateDocument(
-            config.databaseId!,
-            config.ahligiziCollectionId!,
-            nutritionist.$id,
-            updateData
-          );
-
-          // Simpan data nutritionist yang login dengan informasi lengkap
-          currentUser = {
-            $id: nutritionist.$id,
-            name: nutritionist.name || email.split('@')[0],
-            email: nutritionist.email,
-            avatar: nutritionist.avatar || avatar.getInitials(nutritionist.name || email.split('@')[0]).toString(),
-            userType: "nutritionist",
-            specialization: nutritionist.specialization,
-            status: "online",
-            lastSeen: new Date().toISOString(),
-            gender: nutritionist.gender || null,
-          };
-
-          console.log("Current user (nutritionist) set to:", currentUser);
-        } catch (updateError) {
-          console.error("Gagal update status:", updateError);
-        }
-
-        return {
-          nutritionist: {
-            ...nutritionist,
-            userType: "nutritionist",
-            status: "online",
-            lastSeen: new Date().toISOString()
-          }
-        };
-      } else {
-        console.log("Password tidak cocok untuk ahli gizi");
-        throw new Error("Email atau password salah");
-      }
-    } else {
-      console.log("Ahli gizi tidak ditemukan dengan email:", email);
-      throw new Error("Email atau password salah");
-    }
-  } catch (error) {
-    console.error("Login ahli gizi error:", error);
-    return false;
-  }
-}
-
-// Fungsi logout yang dimodifikasi untuk menangani kedua tipe pengguna
-export async function logout() {
-  try {
-    if (currentUser) {
-      if (currentUser.userType === 'nutritionist') {
-        await logoutNutritionist(currentUser.$id);
-      } else {
-        await logoutUser(currentUser.$id);
-      }
-    }
-    currentUser = null;
-    console.log("User logged out, currentUser cleared");
-    return true;
-  } catch (error) {
-    console.error(error);
-    return false;
-  }
-}
-
-
-// Fungsi baru untuk logout pengguna biasa
-export async function logoutUser(userId: string) {
-  try {
-    await updateUserStatus(userId, 'offline');
-    console.log("User status updated to offline");
-  } catch (error) {
-    console.error('Logout error for user:', error);
-    throw error;
-  }
-}
-
-
-export async function logoutNutritionist(nutritionistId: string) {
   try {
     await databases.updateDocument(
       config.databaseId!,
-      config.ahligiziCollectionId!,
-      nutritionistId,
-      {
-        status: 'offline',
-        lastSeen: new Date().toISOString()
-      }
+      collectionId,
+      userId,
+      { status, lastSeen: new Date().toISOString() }
     );
-    console.log("Nutritionist logged out, currentUser cleared");
-    return true;
   } catch (error) {
-    console.error('Logout error:', error);
+    console.error(`Gagal memperbarui status untuk ${userType} dengan ID ${userId}:`, error);
+  }
+}
+
+export async function signIn(email: string, password: string): Promise<UserProfile> {
+  try {
+    await account.deleteSession("current").catch(() => { });
+    await account.createEmailPasswordSession(email, password);
+    const user = await getCurrentUser();
+    if (!user) {
+      await account.deleteSession("current");
+      throw new Error("Profil pengguna tidak ditemukan. Silakan hubungi administrator.");
+    }
+
+    await updateUserStatus(user.$id, user.userType, 'online');
+    return user;
+  } catch (error: any) {
+    console.error("Error pada fungsi signIn:", error);
+    throw new Error(error.message || "Email atau password yang Anda masukkan salah.");
+  }
+}
+
+/**
+ * @returns Data profil pengguna atau null jika tidak ada sesi aktif.
+ */
+export async function getCurrentUser(): Promise<UserProfile | null> {
+  try {
+    const currentAccount = await account.get();
+    if (!currentAccount) return null;
+    try {
+      const userProfile = await databases.getDocument(
+        config.databaseId!,
+        config.usersProfileCollectionId!,
+        currentAccount.$id
+      );
+      return { ...userProfile, userType: 'user' } as UserProfile;
+    } catch (e) {
+    }
+
+    try {
+      const nutritionistProfile = await databases.getDocument(
+        config.databaseId!,
+        config.ahligiziCollectionId!,
+        currentAccount.$id
+      );
+      return { ...nutritionistProfile, userType: 'nutritionist' } as UserProfile;
+    } catch (e) {
+      console.error("Akun valid, tetapi profil tidak ditemukan di database:", currentAccount.$id);
+      return null;
+    }
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function logout(): Promise<void> {
+  let session;
+  try {
+    session = await getCurrentUser();
+  } catch (e) {
+    console.log("Tidak ada sesi aktif yang ditemukan, melanjutkan logout.");
+  }
+  
+  try {
+    if (session) {
+      await updateUserStatus(session.$id, session.userType, 'offline');
+    }
+
+    await account.deleteSession("current");
+
+  } catch (error) {
+    console.error("Error saat proses akhir logout:", error);
     throw error;
   }
 }
@@ -510,6 +336,7 @@ export const getChatMessages = async (chatId: string): Promise<Message[]> => {
   }
 }
 
+// Fungsi Update Profil
 export async function updateUserProfile(userId: string, data: {
   name?: string;
   age?: string;
@@ -517,24 +344,12 @@ export async function updateUserProfile(userId: string, data: {
   disease?: string;
 }) {
   try {
-    console.log("Updating user profile:", { userId, data });
-    
     const response = await databases.updateDocument(
       config.databaseId!,
       config.usersProfileCollectionId!,
       userId,
       data
     );
-
-    // Update currentUser with new data
-    if (currentUser && currentUser.$id === userId) {
-      currentUser = {
-        ...currentUser,
-        ...data
-      };
-    }
-
-    console.log("User profile updated successfully:", response);
     return response;
   } catch (error) {
     console.error("Error updating user profile:", error);
@@ -654,3 +469,31 @@ export async function markNotificationAsRead(notificationId: string) {
     throw error;
   }
 }
+
+//diases information
+export async function getDiseaseInformation(diseaseKey: string) {
+  try {
+    const response = await databases.listDocuments(
+      config.databaseId!,
+      config.diseaseInformationCollectionId!,
+      [
+        Query.equal('diseaseId', diseaseKey)
+      ]
+    );
+
+    if (response.documents.length > 0) {
+      const document = response.documents[0];
+      // Parsing konten yang disimpan sebagai string JSON
+      return {
+        title: document.title,
+        content: JSON.parse(document.content)
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error fetching disease information:', error);
+    throw new Error('Gagal mengambil informasi penyakit.');
+  }
+}
+

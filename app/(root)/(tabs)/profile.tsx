@@ -1,6 +1,8 @@
 import icons from '@/constants/icons';
 import { config, databases, logout, storage } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
+// PERUBAHAN 1: Impor fungsi formatDiseaseName
+import { formatDiseaseName } from '@/utils/format';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from "expo-router";
 import { useState } from "react";
@@ -57,13 +59,15 @@ const Profile = () => {
   const initialLinesToShow = 5;
 
   const handleLogout = async () => {
-    const result = await logout();
-    if (result) {
-      Alert.alert("Success", "Logged out successfully");
-      refetch();
-      router.push('/sign-in');
-    } else {
-      Alert.alert("Error", "Failed to logout");
+    try {
+      await logout();
+      
+      Alert.alert("Sukses", "Anda telah berhasil logout.");
+      await refetch(); 
+
+    } catch (e: any) {
+      console.error("Gagal melakukan logout:", e);
+      Alert.alert("Error", `Gagal melakukan logout: ${e.message}`);
     }
   };
 
@@ -195,11 +199,13 @@ const Profile = () => {
                 <>
                   <ProfileDetailItem label="Umur" value={user.age} />
                   <ProfileDetailItem label="Jenis Kelamin" value={user.gender} />
-                  <ProfileDetailItem label="Penyakit" value={user.disease} />
+                  {/* PERUBAHAN 2: Terapkan fungsi format pada user.disease */}
+                  <ProfileDetailItem label="Penyakit" value={formatDiseaseName(user.disease)} />
                 </>
               ) : (
                 <>
-                  <ProfileDetailItem label="Spesialisasi" value={user.specialization} />
+                  {/* PERUBAHAN 3: Terapkan fungsi format pada user.specialization */}
+                  <ProfileDetailItem label="Spesialisasi" value={formatDiseaseName(user.specialization)} />
                   <ProfileDetailItem label="Jenis Kelamin" value={user.gender} />
                 </>
               )}
@@ -241,4 +247,3 @@ const Profile = () => {
 };
 
 export default Profile;
-

@@ -13,8 +13,10 @@ export interface MealData {
   others: FoodInput[];
   snacks: FoodInput[];
   mealTime?: string | null;
+  snackTime?: string | null;
 }
 
+// --- PERUBAHAN 1: Pastikan timeWarnings ada di tipe data ---
 export interface RecallData {
   userId: string;
   name: string;
@@ -25,6 +27,7 @@ export interface RecallData {
   lunch: MealData;
   dinner: MealData;
   warningFoods: FoodInput[];
+  timeWarnings?: string[]; // Jadikan opsional untuk keamanan
   createdAt?: string;
   lastReviewDate?: string;
   nextReviewDate?: string;
@@ -48,6 +51,7 @@ interface RecallDocument {
   lunch: string;
   dinner: string;
   warningFoods: string;
+  timeWarnings?: string; // Stored as a JSON string
   createdAt: string;
   lastReviewDate?: string;
   nextReviewDate?: string;
@@ -56,18 +60,16 @@ interface RecallDocument {
   sharedInChat?: boolean;
 }
 
-// Save food recall data to database with enhanced notification
 export const saveFoodRecall = async (data: Omit<RecallData, 'createdAt'>) => {
   try {
-    console.log('Saving food recall data:', data);
-    
-    // Stringify objects before saving
     const documentData = {
       ...data,
       breakfast: JSON.stringify(data.breakfast),
       lunch: JSON.stringify(data.lunch),
       dinner: JSON.stringify(data.dinner),
       warningFoods: JSON.stringify(data.warningFoods),
+      // --- PERUBAHAN 2: Pastikan timeWarnings ada sebelum di-stringify ---
+      timeWarnings: JSON.stringify(data.timeWarnings || []),
       createdAt: new Date().toISOString(),
       status: 'pending' as const
     };
@@ -79,30 +81,20 @@ export const saveFoodRecall = async (data: Omit<RecallData, 'createdAt'>) => {
       documentData
     );
 
-    // Create notification for the user
+    // Notifikasi tetap sama
     await createRecallNotification(
       data.userId,
       response.$id,
-      {
-        name: data.name,
-        disease: data.disease
-      }
+      { name: data.name, disease: data.disease }
     );
-
-    // If user has a nutritionist assigned, notify them as well
     if (data.nutritionistId) {
       await createRecallNotification(
         data.userId,
         response.$id,
-        {
-          name: data.name,
-          disease: data.disease
-        },
+        { name: data.name, disease: data.disease },
         data.nutritionistId
       );
     }
-
-    console.log('Food recall data saved successfully:', response);
     return response;
   } catch (error) {
     console.error('Error saving food recall data:', error);
@@ -110,7 +102,6 @@ export const saveFoodRecall = async (data: Omit<RecallData, 'createdAt'>) => {
   }
 };
 
-// Share food recall data in chat with enhanced notifications
 export const shareFoodRecallInChat = async (
   recallId: string,
   chatId: string,
@@ -119,40 +110,28 @@ export const shareFoodRecallInChat = async (
   userName: string
 ) => {
   try {
-    // Get the food recall data
     const recall = await getFoodRecallById(recallId);
     
-    // Format the recall data as a message
-const formatMeal = (meal: MealData) => {
-      const foods = [];
-      
-      // Add meal time if available
-      if (meal.mealTime) {
-        foods.push(`⏰ Waktu: ${meal.mealTime}`);
+    const formatMeal = (meal: MealData) => {
+      const parts: string[] = [];
+      const mainFoods = [
+        ...meal.carbs.filter(f => f.name).map(f => `  🍚 Karbohidrat: ${f.name} (${f.amount} ${f.unit})`),
+        ...meal.others.filter(f => f.name).map(f => `  🍖 Lauk: ${f.name} (${f.amount} ${f.unit})`),
+      ];
+      if (mainFoods.length > 0) {
+        if (meal.mealTime) parts.push(`⏰ Waktu Makan Utama: ${meal.mealTime}`);
+        parts.push(...mainFoods);
       }
-
-      // Add carbs
-      // Process each type of food
-      const carbFoods = meal.carbs.filter(f => f.name).map(f =>
-        `🍚 Karbohidrat: ${f.name} (${f.amount} ${f.unit})`
-      );
-      
-      const otherFoods = meal.others.filter(f => f.name).map(f => 
-        `🍖 Lauk: ${f.name} (${f.amount} ${f.unit})`
-      );
-
-      const snackFoods = meal.snacks.filter(f => f.name).map(f => 
-        `🍎 Selingan: ${f.name} (${f.amount} ${f.unit})`
-      );
-      
-      return [
-        ...foods,
-        ...carbFoods,
-        ...otherFoods,
-        ...snackFoods
-      ].join('\n');
+      const snackFoods = meal.snacks.filter(f => f.name).map(f => `  🍎 Selingan: ${f.name} (${f.amount} ${f.unit})`);
+      if (snackFoods.length > 0) {
+        if (parts.length > 0) parts.push('');
+        if (meal.snackTime) parts.push(`🕒 Waktu Selingan: ${meal.snackTime}`);
+        parts.push(...snackFoods);
+      }
+      return parts.join('\n');
     };
 
+    // --- PERUBAHAN 3: Format pesan chat untuk menyertakan timeWarnings ---
     const recallSummary = `
 📋 Food Recall Data:
 👤 Nama: ${recall.name}
@@ -169,13 +148,17 @@ ${formatMeal(recall.lunch)}
 🌙 === MAKAN MALAM ===
 ${formatMeal(recall.dinner)}
 
-${recall.warningFoods.length ? `\n⚠️ PERINGATAN - Makanan yang Melebihi Batas:
+${recall.warningFoods.length > 0 ? `\n⚠️ PERINGATAN - Makanan Melebihi Batas:
 ${recall.warningFoods.map((food: FoodInput) => 
   `❗ ${food.name}: ${food.amount} ${food.unit}`
 ).join('\n')}` : ''}
+
+${(recall.timeWarnings && recall.timeWarnings.length > 0) ? `\n\n🕒 PERINGATAN - Waktu Makan Tidak Sesuai:
+${recall.timeWarnings.map((warning: string) => 
+  `- ${warning}`
+).join('\n')}` : ''}
     `.trim();
 
-    // Send the message to chat
     const message = await databases.createDocument(
       config.databaseId!,
       config.chatMessagesCollectionId!,
@@ -193,7 +176,7 @@ ${recall.warningFoods.map((food: FoodInput) =>
       }
     );
 
-    // Create notification for nutritionist about shared recall
+    // Sisa fungsi notifikasi tidak perlu diubah
     await createChatNotification(
       userId,
       nutritionistId,
@@ -203,32 +186,18 @@ ${recall.warningFoods.map((food: FoodInput) =>
       true,
       true
     );
-
-    // Update recall document status
     await databases.updateDocument(
       config.databaseId!,
       config.foodRecallCollectionId!,
       recallId,
-      {
-        sharedInChat: true,
-        nutritionistId,
-        status: 'pending',
-        lastReviewDate: null,
-        nextReviewDate: null
-      }
+      { sharedInChat: true, nutritionistId, status: 'pending', lastReviewDate: null, nextReviewDate: null }
     );
-
-    // Create recall notification for both user and nutritionist
     await createRecallNotification(
       userId,
       recallId,
-      {
-        name: recall.name,
-        disease: recall.disease
-      },
+      { name: recall.name, disease: recall.disease },
       nutritionistId
     );
-
     return message;
   } catch (error) {
     console.error('Error sharing food recall in chat:', error);
@@ -236,56 +205,7 @@ ${recall.warningFoods.map((food: FoodInput) =>
   }
 };
 
-// Get food recall history for a user with notification status
-export const getUserFoodRecalls = async (userId: string) => {
-  try {
-    const response = await databases.listDocuments<RecallDocument>(
-      config.databaseId!,
-      config.foodRecallCollectionId!,
-      [
-        Query.equal('userId', userId),
-        Query.orderDesc('createdAt')
-      ]
-    );
-    
-    // Parse stringified data and check for recalls needing review
-    const recalls = response.documents.map((doc: RecallDocument) => {
-      const recall = {
-        ...doc,
-        breakfast: JSON.parse(doc.breakfast),
-        lunch: JSON.parse(doc.lunch),
-        dinner: JSON.parse(doc.dinner),
-        warningFoods: JSON.parse(doc.warningFoods)
-      };
-
-      // If recall needs review and hasn't been notified recently
-      if (doc.status === 'needs_update' && doc.nextReviewDate) {
-        const nextReview = new Date(doc.nextReviewDate);
-        if (nextReview <= new Date()) {
-          // Create notification for review reminder
-          createRecallNotification(
-            userId,
-            doc.$id,
-            {
-              name: doc.name,
-              disease: doc.disease
-            },
-            doc.nutritionistId
-          ).catch(console.error);
-        }
-      }
-
-      return recall;
-    });
-
-    return recalls;
-  } catch (error) {
-    console.error('Error getting user food recalls:', error);
-    throw error;
-  }
-};
-
-// Get specific food recall by ID
+// --- PERUBAHAN 4: Pastikan parse timeWarnings di fungsi get ---
 export const getFoodRecallById = async (recallId: string) => {
   try {
     const response = await databases.getDocument<RecallDocument>(
@@ -294,13 +214,14 @@ export const getFoodRecallById = async (recallId: string) => {
       recallId
     );
     
-    // Parse stringified data
     return {
       ...response,
       breakfast: JSON.parse(response.breakfast),
       lunch: JSON.parse(response.lunch),
       dinner: JSON.parse(response.dinner),
-      warningFoods: JSON.parse(response.warningFoods)
+      warningFoods: JSON.parse(response.warningFoods),
+      // Tambahkan parse untuk timeWarnings
+      timeWarnings: response.timeWarnings ? JSON.parse(response.timeWarnings) : []
     };
   } catch (error) {
     console.error('Error getting food recall:', error);
@@ -308,7 +229,30 @@ export const getFoodRecallById = async (recallId: string) => {
   }
 };
 
-// Update recall status with notifications
+// --- PERUBAHAN 5: Pastikan parse timeWarnings di fungsi get list ---
+export const getUserFoodRecalls = async (userId: string) => {
+  try {
+    const response = await databases.listDocuments<RecallDocument>(
+      config.databaseId!,
+      config.foodRecallCollectionId!,
+      [ Query.equal('userId', userId), Query.orderDesc('createdAt') ]
+    );
+    
+    return response.documents.map((doc: RecallDocument) => ({
+      ...doc,
+      breakfast: JSON.parse(doc.breakfast),
+      lunch: JSON.parse(doc.lunch),
+      dinner: JSON.parse(doc.dinner),
+      warningFoods: JSON.parse(doc.warningFoods),
+      timeWarnings: doc.timeWarnings ? JSON.parse(doc.timeWarnings) : []
+    }));
+  } catch (error) {
+    console.error('Error getting user food recalls:', error);
+    throw error;
+  }
+};
+
+// Fungsi updateRecallStatus tidak perlu diubah
 export const updateRecallStatus = async (
   recallId: string,
   status: 'reviewed' | 'needs_update',
@@ -329,7 +273,6 @@ export const updateRecallStatus = async (
       }
     );
 
-    // Create notification for the user about the review
     await createRecallNotification(
       recall.userId,
       recallId,
