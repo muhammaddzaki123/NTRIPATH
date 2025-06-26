@@ -1,11 +1,9 @@
 import icons from '@/constants/icons';
 import { config, databases, logout, storage } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
-// PERUBAHAN 1: Impor fungsi formatDiseaseName
 import { formatDiseaseName } from '@/utils/format';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from "expo-router";
-import { useState } from "react";
 import {
   Alert,
   Image,
@@ -55,27 +53,19 @@ const SettingsItem = ({
 
 const Profile = () => {
   const { user, refetch } = useGlobalContext();
-  const [isTextExpanded, setIsTextExpanded] = useState(false);
-  const initialLinesToShow = 5;
 
   const handleLogout = async () => {
     try {
       await logout();
-      
       Alert.alert("Sukses", "Anda telah berhasil logout.");
-      await refetch(); 
-
+      await refetch();
     } catch (e: any) {
       console.error("Gagal melakukan logout:", e);
       Alert.alert("Error", `Gagal melakukan logout: ${e.message}`);
     }
   };
 
-  const toggleText = () => {
-    setIsTextExpanded(!isTextExpanded);
-  };
-
-  const handleImagePick = async () => {
+const handleImagePick = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
@@ -85,59 +75,74 @@ const Profile = () => {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.5,
+        quality: 1,
       });
 
       if (!result.canceled) {
+        const asset = result.assets[0];
+
+        if (!asset.fileSize || !asset.mimeType) {
+          Alert.alert("Error", "Could not get file size or type from the selected image. Please try another image.");
+          return;
+        }
+        
         Alert.alert("Uploading...", "Please wait while we update your profile picture.");
+
+        if (user && user.avatar) {
+          try {
+            const urlParts = user.avatar.split('/');
+            const fileIdIndex = urlParts.indexOf('files') + 1;
+            if (fileIdIndex > 0 && fileIdIndex < urlParts.length) {
+              const oldFileId = urlParts[fileIdIndex];
+              if (config.storageBucketId) {
+                 await storage.deleteFile(config.storageBucketId, oldFileId);
+                 console.log("Gambar profil lama berhasil dihapus:", oldFileId);
+              }
+            }
+          } catch (deleteError) {
+            console.error("Gagal menghapus gambar profil lama:", deleteError);
+          }
+        }
 
         const file = {
           name: `avatar-${user?.$id}-${Date.now()}.jpg`,
-          type: 'image/jpeg',
-          uri: result.assets[0].uri,
-          size: await new Promise<number>((resolve) => {
-            fetch(result.assets[0].uri)
-              .then((response) => response.blob())
-              .then((blob) => resolve(blob.size))
-          })
+          type: asset.mimeType,
+          uri: asset.uri,
+          size: asset.fileSize,
         };
+
+        if (!config.storageBucketId) {
+            throw new Error("Storage Bucket ID is not configured.");
+        }
 
         const uploadedFile = await storage.createFile(
           config.storageBucketId,
-          'unique()',
+          'unique()', 
           file
         );
 
         const fileUrl = storage.getFileView(config.storageBucketId, uploadedFile.$id);
-        console.log('Generated avatar URL:', fileUrl.href);
 
         try {
-          if (user?.userType === 'nutritionist') {
-            console.log('Updating nutritionist profile:', user.$id);
-            const updated = await databases.updateDocument(
-              config.databaseId!,
-              config.ahligiziCollectionId!,
-              user.$id,
-              { avatar: fileUrl.href }
-            );
-            console.log('Nutritionist profile updated:', updated);
-          } else {
-            console.log('Updating user profile:', user!.$id);
-            const updated = await databases.updateDocument(
-              config.databaseId!,
-              config.usersProfileCollectionId!,
-              user!.$id,
-              { avatar: fileUrl.href }
-            );
-            console.log('User profile updated:', updated);
+          if (!config.ahligiziCollectionId || !config.usersProfileCollectionId) {
+             throw new Error("Collection ID is not configured.");
           }
+            
+          const collectionId = user?.userType === 'nutritionist' 
+              ? config.ahligiziCollectionId 
+              : config.usersProfileCollectionId;
 
-          console.log('Refreshing user data...');
+          await databases.updateDocument(
+            config.databaseId!,
+            collectionId,
+            user!.$id,
+            { avatar: fileUrl.href }
+          );
+          
           await refetch();
-          console.log('User data refreshed');
         } catch (updateError) {
           console.error('Error updating profile:', updateError);
           throw updateError;
@@ -147,7 +152,7 @@ const Profile = () => {
       }
     } catch (error) {
       console.error('Error updating profile picture:', error);
-      Alert.alert("Error", "Failed to update profile picture. Please try again.");
+      Alert.alert("Error", `Failed to update profile picture. Please try again. Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -176,7 +181,6 @@ const Profile = () => {
             >
               <Image source={icons.edit} className="size-9" />
             </TouchableOpacity>
-
             <Text className="text-2xl font-rubik-bold mt-2">{user?.name}</Text>
           </View>
         </View>
@@ -199,12 +203,10 @@ const Profile = () => {
                 <>
                   <ProfileDetailItem label="Umur" value={user.age} />
                   <ProfileDetailItem label="Jenis Kelamin" value={user.gender} />
-                  {/* PERUBAHAN 2: Terapkan fungsi format pada user.disease */}
                   <ProfileDetailItem label="Penyakit" value={formatDiseaseName(user.disease)} />
                 </>
               ) : (
                 <>
-                  {/* PERUBAHAN 3: Terapkan fungsi format pada user.specialization */}
                   <ProfileDetailItem label="Spesialisasi" value={formatDiseaseName(user.specialization)} />
                   <ProfileDetailItem label="Jenis Kelamin" value={user.gender} />
                 </>

@@ -3,8 +3,8 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import { Picker } from '@react-native-picker/picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { foodRestrictions, urtOptions } from '../../../constants/food-restrictions';
+import { SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View,KeyboardAvoidingView, Platform } from 'react-native';
+import { foodRestrictions, urtOptions } from '@/constants/food-restrictions';
 
 type FoodInput = {
   name: string;
@@ -368,6 +368,10 @@ export default function FoodRecallScreen() {
 
   return (
     <SafeAreaView className='bg-primary-400 h-full p-4'>
+    <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "padding"}
+        style={{ flex: 1 }}
+      >
       <View className="flex-1 bg-primary-500 rounded-xl mt-5 mb-10" >
         <View className="flex-row items-center pt-5 border-b border-white pb-2 mb-4">
           <TouchableOpacity onPress={handleBack} className="p-2">
@@ -455,6 +459,7 @@ export default function FoodRecallScreen() {
           </TouchableOpacity>
         </ScrollView>
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
