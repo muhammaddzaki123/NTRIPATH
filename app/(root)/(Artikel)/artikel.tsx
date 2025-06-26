@@ -8,31 +8,37 @@ import React, { useEffect, useState } from 'react';
 import { FlatList, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const categories = ['Semua',"hipertensi", "diabetes","kanker", 'nutrisi', 'diet', 'kesehatan',  "gizi seimbang", 'olahraga', 'lifestyle'];
+const categories = ['Semua','hipertensi', 'diabetes','kanker', 'nutrisi', 'diet', 'kesehatan'];
 
 const ArtikelScreen = () => {
-  const { articles, loading, error, searchArticles, filteredArticles } = useArticles();
+  const { articles, loading, error, searchArticles, filteredArticles: searchedArticles } = useArticles();
   const [selectedCategory, setSelectedCategory] = useState('Semua');
+  const [finalFilteredArticles, setFinalFilteredArticles] = useState<Article[]>([]);
   const params = useLocalSearchParams<{ query?: string }>();
 
-  // Handle search from URL params
   useEffect(() => {
     if (params.query) {
       searchArticles(params.query);
+    } else {
+      searchArticles('');
     }
   }, [params.query]);
 
-  // Handle category filtering
   useEffect(() => {
-    if (!params.query) {
-      if (selectedCategory === 'Semua') {
-        searchArticles(''); // Reset to show all articles
-      } else {
-        const filtered = articles.filter(article => article.category === selectedCategory);
-        searchArticles(selectedCategory);
-      }
+    const articlesToFilter = params.query ? searchedArticles : articles;
+
+    if (selectedCategory === 'Semua') {
+      setFinalFilteredArticles(articlesToFilter);
+    } else {
+      const lowercasedCategory = selectedCategory.toLowerCase();
+      const filtered = articlesToFilter.filter(article => {
+        const categoryMatch = article.category.toLowerCase() === lowercasedCategory;
+        const tagMatch = article.tags.some(tag => tag.toLowerCase() === lowercasedCategory);
+        return categoryMatch || tagMatch;
+      });
+      setFinalFilteredArticles(filtered);
     }
-  }, [selectedCategory]);
+  }, [selectedCategory, articles, searchedArticles, params.query]);
 
   const handleArticlePress = (article: Article) => {
     router.push({
@@ -44,17 +50,15 @@ const ArtikelScreen = () => {
   return (
     <SafeAreaView className='bg-primary-500 h-full p-2'>
       {/* Header */}
-        <View className="flex-row items-center pt-2 border-b border-white ">
-          {/* Tombol Panah: Kembali ke halaman sebelumnya */}
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color="white" className="ml-2" />
-          </TouchableOpacity>
-          <Text className="text-white text-xl font-rubik-bold ml-4">ARTIKEL GIZI</Text>
-          {/* Tombol Silang: Kembali ke halaman utama */}
-          <TouchableOpacity onPress={() => router.replace('/')} className="ml-auto">
-            <Text className="text-3xl text-white mr-4">×</Text>
-          </TouchableOpacity>
-        </View>
+      <View className="flex-row items-center pt-2 border-b border-white ">
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="white" className="ml-2" />
+        </TouchableOpacity>
+        <Text className="text-white text-xl font-rubik-bold ml-4">ARTIKEL GIZI</Text>
+        <TouchableOpacity onPress={() => router.replace('/')} className="ml-auto">
+          <Text className="text-3xl text-white mr-4">×</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Search */}
       <View className='flex flex-col '>
@@ -99,13 +103,13 @@ const ArtikelScreen = () => {
         <View className="flex-1 justify-center items-center">
           <Text className="text-white">{error}</Text>
         </View>
-      ) : filteredArticles.length === 0 ? (
+      ) : finalFilteredArticles.length === 0 ? (
         <View className="flex-1 justify-center items-center">
           <Text className="text-white">No articles found</Text>
         </View>
       ) : (
         <FlatList
-          data={filteredArticles}
+          data={finalFilteredArticles}
           renderItem={({item}) => (
             <Artikel 
               item={item} 
